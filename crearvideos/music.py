@@ -9,6 +9,7 @@ Las pistas viven en `assets/musica/`, agrupadas por ambiente:
       alegre/      anime, cartoon, cómic
       electronico/ ciencia ficción
       calmado/     acuarela, óleo, minimalista
+      esperanza/   fe y esperanza: piano, cuerdas, ascendente y luminoso
 
 No se descarga nada: la carpeta la llena el usuario con pistas que tenga
 derecho a usar. Es deliberado — subir música ajena a TikTok/YouTube es lo que
@@ -51,6 +52,9 @@ MOODS: dict[str, str] = {
     "acuarela": "calmado",
     "oleo": "calmado",
     "minimal": "calmado",
+    # Videos de fe, esperanza y ánimo: con música de tensión el mensaje se
+    # contradice (habla de consuelo y suena a amenaza).
+    "fe": "esperanza",
 }
 
 FOLDERS = ["general", *sorted(set(MOODS.values()))]

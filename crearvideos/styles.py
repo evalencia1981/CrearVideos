@@ -67,6 +67,15 @@ STYLES: dict[str, tuple[str, str | None]] = {
         "suspenseful thriller mood, moody shadows, tense atmosphere, high "
         "contrast lighting, cinematic, mysterious",
     ),
+    "fe": (
+        "Fe y esperanza",
+        # Luz que entra y gente cercana: el consuelo se cuenta con calidez y
+        # amanecer, no con oscuridad. Sin símbolos religiosos forzados: el
+        # guion decide si los hay.
+        "hopeful uplifting scene, warm golden hour light, soft sun rays breaking "
+        "through, gentle lens glow, tender human moments, serene and comforting "
+        "atmosphere, warm natural colors, cinematic, peaceful",
+    ),
     "scifi": (
         "Ciencia ficción",
         "science fiction concept art, futuristic, neon accents, cyberpunk "
