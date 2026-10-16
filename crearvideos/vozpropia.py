@@ -51,7 +51,11 @@ def _palabras(texto: str, inicio: float, duracion: float) -> list[Word]:
     ocupa más que "de". No es la medición real, pero se acerca mucho más que
     repartir a partes iguales.
     """
-    palabras = texto.split()
+    from .pausas import limpiar
+
+    # Con tu grabación, las marcas "(pausa)" no se narran: tú ya hiciste la
+    # pausa al grabar. Solo hay que quitarlas de los subtítulos.
+    palabras = limpiar(texto).split()
     if not palabras or duracion <= 0:
         return []
     pesos = [max(len(p), _MIN_PESO) for p in palabras]
@@ -127,7 +131,9 @@ def usar_archivo(project: Project, audio: Path, settings: Settings, on_progress=
     if total_real <= 0:
         raise VozPropiaError(f"El archivo de voz no tiene audio: {audio}")
 
-    pesos = [max(len(s.text), 1) for s in project.scenes]
+    from .pausas import limpiar
+
+    pesos = [max(len(limpiar(s.text)), 1) for s in project.scenes]
     suma = sum(pesos)
 
     project.audio_dir.mkdir(parents=True, exist_ok=True)

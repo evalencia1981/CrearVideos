@@ -23,7 +23,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import clonvoz, compose, ffmpeg, importar, subtitles, voicefx
+from . import clonvoz, compose, ffmpeg, importar, pausas, subtitles, voicefx
 from .config import OUTPUT_DIR, Settings
 from .models import Project
 from .pipeline import guardar_narracion, narrar_o_reusar, reusar_narracion
@@ -130,7 +130,7 @@ def create_audio(
     factor = 1.0 / speed if abs(speed - 1.0) > 1e-3 else 1.0
 
     escenas_srt = subtitles.write_srt(
-        [(s.start * factor, s.end * factor, s.text) for s in project.scenes],
+        [(s.start * factor, s.end * factor, pausas.limpiar(s.text)) for s in project.scenes],
         project.root / "escenas.srt",
     )
     subtitulos_srt = subtitles.write_srt(
@@ -156,7 +156,7 @@ def create_audio(
                         "inicio": round(s.start * factor, 3),
                         "fin": round(s.end * factor, 3),
                         "duracion": round(s.duration * factor, 3),
-                        "narracion": s.text,
+                        "narracion": pausas.limpiar(s.text),
                         "texto_pantalla": bloques[s.index].pantalla if s.index < len(bloques) else "",
                         "prompt": bloques[s.index].prompt if s.index < len(bloques) else s.image_subject,
                         "audio": s.audio_path.name if s.audio_path else "",

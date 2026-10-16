@@ -22,7 +22,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from . import vozpropia
+from . import pausas, vozpropia
 from .config import PROJECT_ROOT, RESOURCE_ROOT, Settings
 from .models import Project
 
@@ -285,7 +285,10 @@ def generar(
     crudos.mkdir(parents=True, exist_ok=True)
     entrada = crudos / "_escenas.json"
     entrada.write_text(
-        json.dumps([{"index": s.index, "texto": s.text} for s in project.scenes], ensure_ascii=False),
+        # Sin las marcas "(pausa)": el modelo de clonación las leería en voz
+        # alta. (Las pausas en sí aún no se aplican a la voz clonada.)
+        json.dumps([{"index": s.index, "texto": pausas.limpiar(s.text)} for s in project.scenes],
+                   ensure_ascii=False),
         encoding="utf-8",
     )
 

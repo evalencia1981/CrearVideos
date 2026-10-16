@@ -30,7 +30,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from . import importar
+from . import importar, pausas
 from .config import SceneSettings
 from .models import Scene, ScriptMeta
 
@@ -112,8 +112,11 @@ def _group_sentences(sentences: list[str], cfg: SceneSettings) -> list[str]:
 
 
 def _build_prompt(narration: str, override: str | None, style: str) -> tuple[str, str]:
-    """Devuelve (prompt completo con estilo, sujeto solo)."""
-    subject = (override or narration).strip()
+    """Devuelve (prompt completo con estilo, sujeto solo).
+
+    Las marcas de pausa son para la voz: a la IA de imagen no le dicen nada.
+    """
+    subject = (override or pausas.limpiar(narration)).strip()
     return f"{subject}. {style}", subject
 
 
@@ -159,7 +162,9 @@ def parse(
     scenes: list[Scene] = []
     for i, (text, override) in enumerate(zip(blocks, overrides)):
         text = " ".join(text.split())
-        if not text:
+        # Una escena hecha solo de "(pausa)" no tiene nada que narrar ni
+        # ilustrar: se descarta en vez de dejar una imagen muda.
+        if not pausas.limpiar(text):
             continue
         prompt, subject = _build_prompt(text, override, style)
         scenes.append(

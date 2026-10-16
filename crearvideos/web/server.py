@@ -1354,12 +1354,16 @@ class Handler(BaseHTTPRequestHandler):
             except ValueError as e:
                 self._json({"error": str(e)}, 400)
                 return
-            palabras = sum(len(s.text.split()) for s in scenes)
+            from .. import pausas
+
+            palabras = sum(len(pausas.limpiar(s.text).split()) for s in scenes)
+            silencio = sum(pausas.segundos_totales(s.text) for s in scenes)
             self._json(
                 {
                     "escenas": len(scenes),
                     "palabras": palabras,
-                    "duracion_estimada": round(palabras / 2.85),
+                    "duracion_estimada": round(palabras / 2.85 + silencio),
+                    "pausas": round(silencio, 1),
                 }
             )
             return

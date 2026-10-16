@@ -17,7 +17,7 @@ import json
 import math
 from pathlib import Path
 
-from . import compose, director, ffmpeg, voicefx
+from . import compose, director, ffmpeg, pausas, voicefx
 from .config import FPS, OUTPUT_DIR, Settings, VoiceSettings
 from .models import Project, Scene, Word
 from .providers import get_image_provider, get_tts_provider
@@ -56,6 +56,8 @@ def _clave_narracion(project: Project, settings: Settings, voice_filter: str | N
     for scene in project.scenes:
         h.update(scene.text.encode())
         h.update(b"\x01")
+        if pausas.tiene_pausas(scene.text):
+            h.update(b"pausas-v1")
     return h.hexdigest()[:16]
 
 
@@ -73,6 +75,10 @@ def firma_escena(
         h.update(parte.encode())
         h.update(b"\x00")
     h.update(texto.encode())
+    if pausas.tiene_pausas(texto):
+        # Antes de entender las marcas, "(pausa)" se leía en voz alta con el
+        # mismo texto: sin esto se reusaría ese audio viejo.
+        h.update(b"pausas-v1")
     return h.hexdigest()[:16]
 
 

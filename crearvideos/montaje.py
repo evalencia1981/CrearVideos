@@ -31,6 +31,7 @@ from . import (
     ffmpeg,
     importar,
     medios as medios_lib,
+    pausas,
     subtitles,
     voicefx,
     vozpropia,
@@ -78,19 +79,20 @@ def previsualizar(script_source: str | Path, carpeta: Path, settings: Settings |
     scenes, _ = parse(raw, settings.scene)
     encontrados = medios_lib.recolectar(Path(carpeta))
     emp = medios_lib.emparejar(encontrados, len(scenes))
-    palabras = sum(len(s.text.split()) for s in scenes)
+    palabras = sum(len(pausas.limpiar(s.text).split()) for s in scenes)
+    silencio = sum(pausas.segundos_totales(s.text) for s in scenes)
     return {
         "escenas": len(scenes),
         "palabras": palabras,
         # Estimación antes de narrar: ~2.85 palabras por segundo es el ritmo
-        # medido de edge-tts al +8% que usa la app. La duración real la fija el
-        # audio, no esta cuenta.
-        "duracion_estimada": round(palabras / 2.85),
+        # medido de edge-tts al +8% que usa la app, más las pausas marcadas.
+        # La duración real la fija el audio, no esta cuenta.
+        "duracion_estimada": round(palabras / 2.85 + silencio),
         "archivos": len(encontrados),
         "metodo": emp.metodo,
         "avisos": emp.avisos,
         "filas": [
-            {**fila, "texto": s.text[:90]}
+            {**fila, "texto": pausas.limpiar(s.text)[:90]}
             for fila, s in zip(medios_lib.resumen(emp, len(scenes)), scenes)
         ],
     }
@@ -227,7 +229,7 @@ def montar(
                         "duracion": round(s.duration, 3),
                         "medio": emparejado.medios[s.index].path.name,
                         "tipo": emparejado.medios[s.index].tipo,
-                        "narracion": s.text,
+                        "narracion": pausas.limpiar(s.text),
                         "texto_pantalla": bloques[s.index].pantalla if s.index < len(bloques) else "",
                     }
                     for s in project.scenes

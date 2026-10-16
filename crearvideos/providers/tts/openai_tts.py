@@ -43,7 +43,7 @@ class OpenAITTS(TTSProvider):
     def preflight(self) -> None:
         self._key()
 
-    def synthesize(self, text: str, out_path: Path) -> tuple[float, list[Word]]:
+    def synthesize_raw(self, text: str, out_path: Path) -> tuple[float, list[Word]]:
         key = self._key()
         payload = {
             "model": self.model,

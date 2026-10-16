@@ -56,7 +56,7 @@ class EdgeTTS(TTSProvider):
         total = words[-1].end if words else 0.0
         return total, words
 
-    def synthesize(self, text: str, out_path: Path) -> tuple[float, list[Word]]:
+    def synthesize_raw(self, text: str, out_path: Path) -> tuple[float, list[Word]]:
         return asyncio.run(self._synthesize(text, out_path))
 
 

@@ -23,9 +23,19 @@ class TTSProvider(ABC):
     #: False si hay que estimarlos (ver `estimate_words`).
     exact_timings: bool = False
 
-    @abstractmethod
     def synthesize(self, text: str, out_path: Path) -> tuple[float, list[Word]]:
-        """Genera el audio en `out_path` y devuelve (duración, palabras)."""
+        """Genera el audio en `out_path` y devuelve (duración, palabras).
+
+        Respeta las marcas `(pausa)` del guion (ver pausas.py): el texto se
+        parte ahí y se intercalan silencios. Sin marcas, es `synthesize_raw`.
+        """
+        from ... import pausas
+
+        return pausas.sintetizar(self, text, out_path)
+
+    @abstractmethod
+    def synthesize_raw(self, text: str, out_path: Path) -> tuple[float, list[Word]]:
+        """Síntesis directa del motor, sin interpretar marcas."""
 
     def preflight(self) -> None:
         """Comprueba que el proveedor puede trabajar. Lanza si no."""
