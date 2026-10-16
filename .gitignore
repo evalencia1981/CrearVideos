@@ -1,0 +1,26 @@
+.venv/
+.env
+__pycache__/
+*.pyc
+proyectos/
+assets/musica/
+/estudio/
+client_secret.json
+.youtube-token.json
+bin/
+build/
+dist/
+.venv-build/
+.venv-voz/
+assets/icono.ico
+
+# Binarios descargados (cloudflared, uv): pesan ~93 MB y se bajan de su web
+herramientas/
+
+# Permisos locales de Claude Code: son de este PC
+.claude/settings.local.json
+
+# Laboratorio de video: su entorno y los clips generados (pesados y de pago;
+# el respaldo de los resultados es la carpeta, no el repositorio)
+lab_video/.venv/
+lab_video/resultados/

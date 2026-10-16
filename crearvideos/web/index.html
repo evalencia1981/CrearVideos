@@ -1,0 +1,3806 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CrearVideos</title>
+<style>
+  :root {
+    --bg: #0d0f16;
+    --panel: #161923;
+    --panel-2: #1e2230;
+    --line: #2a2f40;
+    --text: #e7e9ef;
+    --muted: #949bb0;
+    --accent: #ffb84f;
+    --accent-ink: #1a1200;
+    --danger: #ff6b6b;
+    --ok: #4fd6a0;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: radial-gradient(1200px 600px at 50% -10%, #1a1e2c 0%, var(--bg) 55%);
+    color: var(--text);
+    font: 15px/1.55 -apple-system, "Segoe UI", Roboto, system-ui, sans-serif;
+    min-height: 100vh;
+    padding: 40px 20px 80px;
+  }
+  .wrap { max-width: 680px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 32px; }
+  header h1 {
+    margin: 0; font-size: 28px; letter-spacing: -0.5px; font-weight: 700;
+  }
+  header h1 .dot { color: var(--accent); }
+  header p { margin: 6px 0 0; color: var(--muted); font-size: 14px; }
+
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 20px 50px -30px #000;
+  }
+  label { display: block; font-weight: 600; margin: 0 0 7px; font-size: 13px; }
+  label .hint { font-weight: 400; color: var(--muted); }
+
+  textarea, input[type=text], select {
+    width: 100%;
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 11px 13px;
+    font: inherit;
+    outline: none;
+    transition: border-color .15s;
+  }
+  textarea:focus, input:focus, select:focus { border-color: var(--accent); }
+  textarea { min-height: 160px; resize: vertical; line-height: 1.6; }
+
+  .row { display: flex; gap: 14px; margin-top: 16px; }
+  .row > div { flex: 1; }
+  .full { margin-top: 16px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    padding: 8px 14px; border-radius: 99px; border: 1px solid var(--line);
+    background: var(--panel-2); color: var(--muted); cursor: pointer;
+    font-size: 13px; user-select: none; transition: border-color .12s, color .12s;
+  }
+  .chip:hover { border-color: var(--accent); color: var(--text); }
+  .chip.sel {
+    background: var(--accent); color: var(--accent-ink);
+    border-color: var(--accent); font-weight: 600;
+  }
+
+  /* --- música: selector + escucha + volumen --- */
+  .musica-fila { display: flex; gap: 10px; align-items: stretch; }
+  .musica-fila select { flex: 1; }
+  .mini {
+    width: auto; margin: 0; flex: 0 0 auto; padding: 0 16px;
+    font-size: 16px; line-height: 1; border-radius: 10px;
+  }
+  .mini.suena { background: var(--ok); }
+  .vol-fila { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+  .vol-ico { font-size: 15px; opacity: .8; }
+  .vol-num {
+    flex: 0 0 auto; min-width: 44px; text-align: right;
+    font-variant-numeric: tabular-nums; color: var(--text); font-weight: 600; font-size: 13px;
+  }
+  input[type=range] {
+    flex: 1; -webkit-appearance: none; appearance: none; height: 6px;
+    border-radius: 99px; background: var(--panel-2); outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none; width: 18px; height: 18px;
+    border-radius: 50%; background: var(--accent); cursor: pointer;
+    border: 2px solid var(--panel);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 18px; height: 18px; border-radius: 50%; background: var(--accent);
+    cursor: pointer; border: 2px solid var(--panel);
+  }
+  .vol-hint { margin-top: 8px; font-size: 12px; color: var(--muted); }
+
+  /* --- portada --- */
+  input[type=file] {
+    width: 100%; font: inherit; color: var(--muted); font-size: 13px;
+    background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 10px; padding: 9px 11px; cursor: pointer;
+  }
+  input[type=file]::file-selector-button {
+    font: inherit; font-weight: 600; margin-right: 10px; padding: 6px 12px;
+    border: 0; border-radius: 8px; background: var(--accent);
+    color: var(--accent-ink); cursor: pointer;
+  }
+  .portada-prev { display: none; gap: 12px; margin-top: 12px; align-items: center; }
+  .portada-prev.on { display: flex; }
+  .portada-prev img {
+    width: 68px; height: 121px; object-fit: cover; border-radius: 8px;
+    border: 1px solid var(--line); background: #000;
+  }
+  .portada-ok { font-size: 12.5px; color: var(--muted); margin-bottom: 8px; }
+  /* --- referencias de personaje: tira de miniaturas --- */
+  .refs-prev { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+  .refs-prev figure { position: relative; margin: 0; }
+  .refs-prev img {
+    width: 76px; height: 76px; object-fit: cover;
+    border-radius: 8px; border: 1px solid var(--line);
+  }
+  .refs-prev button {
+    position: absolute; top: -6px; right: -6px; width: 22px; height: 22px;
+    padding: 0; line-height: 1; border-radius: 50%; font-size: 13px;
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+  }
+  .portada-prev .mini { padding: 5px 12px; font-size: 12.5px; background: var(--panel-2); color: var(--text); border: 1px solid var(--line); }
+
+  .check { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; font-weight: 400; }
+  .check input { margin-top: 2px; width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+  .check span { font-weight: 600; }
+
+  button {
+    width: 100%;
+    margin-top: 22px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: 0;
+    border-radius: 10px;
+    padding: 13px;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    transition: filter .15s, opacity .15s;
+  }
+  button:hover:not(:disabled) { filter: brightness(1.08); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* --- estado del trabajo --- */
+  #estado { margin-top: 18px; display: none; }
+  #estado.on { display: block; }
+  .bar {
+    height: 6px; border-radius: 99px; background: var(--panel-2);
+    overflow: hidden; margin-bottom: 12px;
+  }
+  .bar > i {
+    display: block; height: 100%; width: 40%;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    animation: slide 1.2s infinite;
+  }
+  @keyframes slide { 0% { margin-left: -40%; } 100% { margin-left: 100%; } }
+  .msg { color: var(--muted); font-size: 14px; }
+  .msg.err { color: var(--danger); white-space: pre-wrap; }
+
+  /* --- resultado --- */
+  #resultado { margin-top: 22px; display: none; }
+  #resultado.on { display: block; }
+  video { width: 100%; border-radius: 12px; background: #000; display: block; }
+  .meta {
+    display: flex; flex-wrap: wrap; gap: 8px 20px; margin-top: 14px;
+    color: var(--muted); font-size: 13px;
+  }
+  .meta b { color: var(--text); font-weight: 600; }
+  .meta .free { color: var(--ok); }
+  /* --- velocidad del resultado --- */
+  .vel-box { display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+  .vel-lbl { font-size: 13px; color: var(--muted); font-weight: 600; }
+  .vel-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .vel-btns button {
+    width: auto; margin: 0; padding: 6px 12px; font-size: 13px; font-weight: 600;
+    border-radius: 8px; background: var(--panel-2); color: var(--muted);
+    border: 1px solid var(--line);
+  }
+  .vel-btns button:hover:not(:disabled) { border-color: var(--accent); color: var(--text); filter: none; }
+  .vel-btns button.sel { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .vel-estado { font-size: 12.5px; color: var(--muted); }
+
+  .dl {
+    display: inline-block; margin-top: 14px; color: var(--accent);
+    text-decoration: none; font-weight: 600; font-size: 14px;
+  }
+  .dl:hover { text-decoration: underline; }
+
+  .aviso {
+    margin-top: 14px; font-size: 12.5px; color: var(--muted);
+    background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 10px; padding: 10px 12px;
+  }
+  .aviso b { color: var(--accent); }
+
+  /* --- el programa se cerró --- */
+  .caido {
+    display: none; position: fixed; left: 0; right: 0; bottom: 0; z-index: 50;
+    background: var(--danger); color: #2a0000; padding: 14px 18px;
+    font-size: 14px; text-align: center; box-shadow: 0 -10px 30px -18px #000;
+  }
+  .caido b { color: #2a0000; }
+  .caido button {
+    width: auto; margin: 0 0 0 12px; padding: 5px 14px; font-size: 13px;
+    background: #2a0000; color: #fff; border-radius: 8px;
+  }
+
+  /* --- módulos --- */
+  .wrap.ancho { max-width: 900px; }
+  .modulos {
+    display: inline-flex; gap: 4px; margin-top: 18px; padding: 4px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 99px;
+  }
+  .modulos button {
+    width: auto; margin: 0; padding: 8px 18px; border-radius: 99px;
+    background: transparent; color: var(--muted); font-weight: 600; font-size: 13.5px;
+  }
+  .modulos button.sel { background: var(--accent); color: var(--accent-ink); }
+  .modulo { display: none; }
+  .modulo.on { display: block; }
+
+  /* --- campos de ruta con botón de explorador --- */
+  .fila-ruta { display: flex; gap: 8px; align-items: stretch; }
+  .fila-ruta input[type=text] { flex: 1; min-width: 0; }
+  .btn-explorar {
+    width: auto; margin: 0; flex: 0 0 auto; padding: 0 14px; font-size: 17px;
+    line-height: 1; border-radius: 10px; background: var(--panel-2);
+    color: var(--text); border: 1px solid var(--line);
+  }
+  .btn-explorar:hover:not(:disabled) { border-color: var(--accent); filter: none; }
+  .btn-explorar.esperando { opacity: .6; }
+
+  /* --- importar guion desde archivo --- */
+  .importar { display: flex; align-items: center; gap: 12px; margin-bottom: 9px; flex-wrap: wrap; }
+  .importar input[type=file] { display: none; }
+  .btn-archivo {
+    display: inline-block; margin: 0; padding: 7px 13px; border-radius: 8px;
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+    font-size: 13px; font-weight: 600; cursor: pointer; transition: border-color .12s;
+  }
+  .btn-archivo:hover { border-color: var(--accent); }
+  .importar-info { font-size: 12.5px; color: var(--muted); }
+  .importar-info b { color: var(--ok); }
+  textarea.soltando { border-color: var(--accent); background: var(--panel); }
+
+  /* --- revisión antes de generar --- */
+  .revision {
+    display: none; margin-top: 18px; padding: 18px;
+    background: var(--panel-2); border: 1px solid var(--accent);
+    border-radius: 12px;
+  }
+  .revision.on { display: block; }
+  .revision h3 {
+    margin: 0 0 4px; font-size: 15px; color: var(--accent);
+    text-transform: uppercase; letter-spacing: .6px;
+  }
+  .revision .sub { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
+  .rev-fila {
+    display: flex; gap: 12px; align-items: baseline;
+    padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px;
+  }
+  .rev-fila:last-of-type { border-bottom: 0; }
+  .rev-fila .k { flex: 0 0 132px; color: var(--muted); font-size: 13px; }
+  .rev-fila .v { flex: 1; }
+  .rev-fila .v small { color: var(--muted); }
+  .rev-fila .v.alerta { color: var(--accent); }
+  .rev-escuchar {
+    width: auto; margin: 0 0 0 8px; padding: 3px 10px; font-size: 12px;
+    border-radius: 7px; background: var(--panel); color: var(--text);
+    border: 1px solid var(--line); font-weight: 600;
+  }
+  .rev-botones { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+  .rev-botones button { margin: 0; width: auto; flex: 1; min-width: 150px; }
+  .rev-botones .volver {
+    background: var(--panel); color: var(--text); border: 1px solid var(--line);
+  }
+
+  /* --- paleta de la estética --- */
+  .paleta { display: flex; gap: 12px; flex-wrap: wrap; margin: 10px 0 4px; }
+  .paleta span {
+    display: flex; align-items: center; gap: 6px; font-size: 12px;
+    color: var(--muted); font-variant-numeric: tabular-nums;
+  }
+  .paleta i {
+    width: 26px; height: 26px; border-radius: 6px; display: block;
+    border: 1px solid var(--line);
+  }
+  #estTablero pre {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 12px; font-size: 12.5px; white-space: pre-wrap;
+    overflow-wrap: anywhere; margin: 0 0 8px;
+  }
+
+  /* --- catálogo de nichos --- */
+  #catTabla { display: none; margin-top: 14px; }
+  table.catalogo { border-collapse: collapse; width: 100%; font-size: 13px; }
+  table.catalogo th {
+    text-align: left; color: var(--muted); font-weight: 600; font-size: 12px;
+    padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap;
+  }
+  table.catalogo td { padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.catalogo tr:hover td { background: var(--panel-2); }
+  table.catalogo .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  table.catalogo .dinero { color: var(--accent); font-weight: 600; }
+  table.catalogo .nota { color: var(--muted); font-size: 12px; line-height: 1.4; }
+  table.catalogo button { padding: 4px 12px; font-size: 12px; white-space: nowrap; }
+
+  /* --- rejilla de nichos --- */
+  .rejilla {
+    display: grid; gap: 14px; margin-top: 18px;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  }
+  .tarjeta {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px;
+    overflow: hidden; display: flex; flex-direction: column;
+    transition: border-color .12s, transform .12s;
+  }
+  .tarjeta:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .tarjeta .mini { position: relative; margin: 0; padding: 0; border: 0; border-radius: 0; }
+  .tarjeta img {
+    width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; background: #000;
+  }
+  .etiquetas {
+    position: absolute; left: 6px; bottom: 6px; right: 6px;
+    display: flex; gap: 5px; flex-wrap: wrap;
+  }
+  .eti {
+    background: rgba(0,0,0,.78); color: #fff; font-size: 10.5px; font-weight: 700;
+    padding: 2px 7px; border-radius: 5px; letter-spacing: .3px;
+  }
+  .eti.fl { background: var(--ok); color: #05281c; }
+  .eti.dinero { background: var(--accent); color: var(--accent-ink); }
+  .tarjeta-cuerpo { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .tarjeta-titulo {
+    font-size: 13px; font-weight: 600; line-height: 1.35; color: var(--text);
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .tarjeta-canal { font-size: 11.5px; color: var(--muted); }
+  .tarjeta-datos { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 11.5px; color: var(--muted); }
+  .tarjeta-datos b { color: var(--text); }
+  .tarjeta-datos .alza { color: var(--ok); }
+  .tarjeta-porque { font-size: 11.5px; color: var(--muted); line-height: 1.4; font-style: italic; }
+  .tarjeta-botones { display: flex; gap: 6px; margin-top: auto; padding-top: 8px; }
+  .tarjeta-botones button, .tarjeta-botones a {
+    flex: 1; margin: 0; padding: 6px 4px; font-size: 11.5px; font-weight: 600;
+    border-radius: 7px; background: var(--panel); color: var(--text);
+    border: 1px solid var(--line); text-align: center; text-decoration: none; width: auto;
+  }
+  .tarjeta-botones button:hover { border-color: var(--accent); filter: none; }
+  .tarjeta-botones .primario { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+  /* --- voces por escena --- */
+  .voz-fila {
+    display: grid; grid-template-columns: 30px 1fr 190px auto;
+    gap: 10px; align-items: center;
+    padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13.5px;
+  }
+  .voz-fila.pendiente { opacity: .72; }
+  .voz-fila.pendiente .voz-n { color: var(--accent); }
+  .voz-n { color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+  .voz-texto { display: flex; gap: 8px; align-items: baseline; min-width: 0; color: var(--text); }
+  .voz-linea { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .voz-fuente { color: var(--accent); font-size: 12.5px; flex: 0 0 auto; }
+  .voz-fuente.err { color: var(--danger); }
+  .voz-sel { padding: 6px 8px; font-size: 12.5px; }
+  .voz-acciones { display: flex; align-items: center; gap: 6px; }
+  .voz-acciones button { padding: 4px 10px; font-size: 13px; }
+  .voz-dura {
+    min-width: 46px; text-align: right; color: var(--muted); font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+  }
+  @media (max-width: 640px) {
+    .voz-fila { grid-template-columns: 26px 1fr; grid-template-areas: "n t" ". s" ". a"; }
+    .voz-n { grid-area: n; } .voz-texto { grid-area: t; white-space: normal; }
+    .voz-sel { grid-area: s; } .voz-acciones { grid-area: a; }
+  }
+
+  /* --- selector de modo dentro de un módulo --- */
+  .modos { display: flex; gap: 8px; flex-wrap: wrap; }
+  .modos button {
+    width: auto; flex: 1; min-width: 200px; margin: 0; padding: 10px 14px;
+    background: var(--panel-2); color: var(--muted); border: 1px solid var(--line);
+    font-size: 13.5px;
+  }
+  .modos button.sel { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+  /* --- publicar: bloques para copiar --- */
+  #pubResultado h2 {
+    font-size: 15px; margin: 26px 0 6px; color: var(--accent);
+    text-transform: uppercase; letter-spacing: .6px;
+  }
+  #pubResultado pre {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px;
+    padding: 12px 14px; font-size: 13px; line-height: 1.5;
+    /* pre-wrap + anywhere: si no, la descripción y las etiquetas se salen de
+       la tarjeta y hay que hacer scroll lateral para leerlas. */
+    white-space: pre-wrap; overflow-wrap: anywhere; margin: 0;
+    max-height: 420px; overflow-y: auto;
+  }
+  #pubResultado .rev-fila .v { overflow-wrap: anywhere; }
+  #pubResultado .inf-acciones { margin: 0 0 8px; }
+
+  /* --- estudio: informe --- */
+  .opciones { display: flex; gap: 14px; margin-top: 16px; flex-wrap: wrap; align-items: end; }
+  .opciones > div { flex: 1; min-width: 150px; }
+  .opciones input[type=number] {
+    width: 100%; background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+    border-radius: 10px; padding: 11px 13px; font: inherit;
+  }
+  #informe { margin-top: 22px; display: none; }
+  #informe.on { display: block; }
+  .inf-top { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+  .inf-top img { width: 240px; max-width: 100%; border-radius: 10px; border: 1px solid var(--line); }
+  .inf-acciones { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 4px; }
+  .inf-acciones button {
+    width: auto; margin: 0; padding: 8px 14px; font-size: 13px;
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+  }
+  .inf-acciones button:hover:not(:disabled) { border-color: var(--accent); filter: none; }
+  .md { font-size: 14.5px; overflow-wrap: anywhere; }
+  .md h1 { font-size: 21px; margin: 0 0 6px; line-height: 1.3; }
+  .md h2 {
+    font-size: 15px; margin: 26px 0 8px; color: var(--accent);
+    text-transform: uppercase; letter-spacing: .6px;
+  }
+  .md p { margin: 6px 0; }
+  .md ul { margin: 6px 0; padding-left: 20px; }
+  .md li { margin: 5px 0; }
+  .md a { color: var(--accent); }
+  .md blockquote {
+    margin: 8px 0; padding: 10px 14px; border-left: 3px solid var(--accent);
+    background: var(--panel-2); border-radius: 0 10px 10px 0;
+  }
+  .md code { background: var(--panel-2); padding: 1px 6px; border-radius: 6px; font-size: 13px; }
+  .md pre {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px;
+    padding: 12px; white-space: pre-wrap; font-size: 13px;
+  }
+  .md pre code { background: none; padding: 0; }
+  .tabla { overflow-x: auto; }
+  .md table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  .md th, .md td { border-bottom: 1px solid var(--line); padding: 7px 8px; text-align: left; vertical-align: top; }
+  .md th { color: var(--muted); font-weight: 600; }
+  .md td:first-child, .md th:first-child { white-space: nowrap; }
+  .historial { margin-top: 18px; }
+  .historial a {
+    display: flex; justify-content: space-between; gap: 12px; padding: 9px 2px;
+    border-bottom: 1px solid var(--line); color: var(--text); text-decoration: none; font-size: 13.5px;
+  }
+  .historial a:hover { color: var(--accent); }
+  .historial small { color: var(--muted); white-space: nowrap; }
+  @media (max-width: 600px) {
+    .row { flex-direction: column; }
+    .inf-top img { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Crear<span class="dot">Videos</span></h1>
+    <p id="lema">Pega un guion y obtén un short vertical con voz, imágenes y subtítulos.</p>
+    <div class="modulos" role="tablist">
+      <button type="button" data-mod="estudio">1 · Estudio</button>
+      <button type="button" data-mod="produccion" class="sel">2 · Producción</button>
+      <button type="button" data-mod="audio">3 · Audio</button>
+      <button type="button" data-mod="montaje">4 · Montaje</button>
+      <button type="button" data-mod="publicar">5 · Publicar</button>
+      <button type="button" data-mod="voces">🎙 Voces</button>
+    </div>
+  </header>
+
+  <section class="modulo" id="mod-voces">
+    <div class="card">
+      <label for="vocGuion">Guion
+        <span class="hint">— cada escena podrá llevar su propia voz</span>
+      </label>
+      <div class="importar">
+        <label class="btn-archivo" for="vocArchivo">📄 Importar guion</label>
+        <input type="file" id="vocArchivo" accept=".txt,.md,.srt,text/plain">
+        <span class="importar-info" id="vocArchivoInfo">o pégalo abajo · también puedes arrastrar el .txt</span>
+      </div>
+      <textarea id="vocGuion" placeholder="Pega el guion. Se parte en escenas y podrás dar una voz distinta a cada una."></textarea>
+
+      <div class="row">
+        <div>
+          <label for="vocBase">Voz base <span class="hint">— la de las escenas que no cambies</span></label>
+          <select id="vocBase"></select>
+        </div>
+        <div>
+          <label for="vocNombre">Nombre del proyecto <span class="hint">— opcional</span></label>
+          <input id="vocNombre" type="text" placeholder="Se deduce del guion">
+        </div>
+      </div>
+
+      <div class="full">
+        <label for="vocCarpeta">Tu narración ya grabada
+          <span class="hint">— carpeta con un audio por escena, o un archivo suelto</span>
+        </label>
+        <div class="fila-ruta">
+          <input id="vocCarpeta" type="text" placeholder="C:\…\mis-audios\   ó   C:\…\escena_03.mp3">
+          <button type="button" class="btn-explorar" data-elegir="vocCarpeta" data-tipo="carpeta" data-filtro="audio" data-titulo="Carpeta con tus audios" title="Elegir una carpeta">📂</button>
+          <button type="button" class="btn-explorar" data-elegir="vocCarpeta" data-tipo="archivo" data-filtro="audio" data-titulo="Carpeta con tus audios" title="Elegir un archivo">📄</button>
+        </div>
+        <div class="vol-hint">
+          Se emparejan por el número del nombre (<code>escena_03.mp3</code>) o por orden.
+          Elige <b>🎤 Mi grabación</b> en las escenas que la usen.
+        </div>
+      </div>
+
+      <div class="full">
+        <label for="vocMuestra">Clonar tu voz
+          <span class="hint">— muestra de 15-30 s; luego elige 🧬 Voz clonada en las escenas</span>
+        </label>
+        <div class="fila-ruta">
+          <input id="vocMuestra" type="text" placeholder="C:\…\mi-voz.mp3   ó   C:\…\narrador\">
+          <button type="button" class="btn-explorar" data-elegir="vocMuestra" data-tipo="archivo" data-filtro="audio" data-titulo="Muestra de tu voz" title="Elegir un archivo">📄</button>
+          <button type="button" class="btn-explorar" data-elegir="vocMuestra" data-tipo="carpeta" data-filtro="audio" data-titulo="Muestra de tu voz" title="Elegir una carpeta">📂</button>
+        </div>
+        <div class="inf-acciones" style="margin:10px 0 0">
+          <button type="button" id="vocProbarClon">Probar cómo sonará <small>(~1 min)</small></button>
+          <button type="button" id="vocInstalarClon" style="display:none">Instalar voz clonada</button>
+          <span class="importar-info" id="vocClonNota"></span>
+        </div>
+        <div class="aviso" id="vocClonFalta" style="display:none"></div>
+        <div id="vocInstalando" style="display:none">
+          <div class="bar"><i></i></div>
+          <div class="msg" id="vocInstalarMsg"></div>
+        </div>
+      </div>
+
+      <button id="vocPreparar">Preparar escenas</button>
+
+      <div id="vocEstado" style="display:none">
+        <div class="bar"><i></i></div>
+        <div class="msg" id="vocMsg">Preparando…</div>
+      </div>
+
+      <div id="vocPanel" style="display:none">
+        <div class="meta" id="vocResumen"></div>
+        <div class="inf-acciones">
+          <button type="button" id="vocGenerar">Generar las que faltan</button>
+          <button type="button" id="vocUnir">Oír todo seguido</button>
+        </div>
+        <audio id="vocPlayer" controls style="width:100%; display:none; margin:8px 0"></audio>
+        <div id="vocTabla"></div>
+        <div class="aviso">
+          Cambiar la voz de una escena <b>solo regenera esa escena</b>: las demás no se
+          tocan ni cambian de sonido. Cuando montes el video con <b>el mismo nombre de
+          proyecto</b>, sonará exactamente como lo dejaste aquí.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="modulo" id="mod-publicar">
+    <div class="card">
+      <label for="pubProyecto">Video ya generado
+        <span class="hint">— de ahí salen los capítulos, con el minuto exacto de cada tema</span>
+      </label>
+      <select id="pubProyecto"></select>
+
+      <div class="full">
+        <label for="pubContexto">Contexto del canal <span class="hint" id="pubContextoEtiqueta">— opcional</span></label>
+        <textarea id="pubContexto" style="min-height:80px" placeholder="Tono, público, a qué otros videos enlazar… Puedes pegar aquí el ADN que sacó la pestaña 1 · Estudio."></textarea>
+      </div>
+
+      <button id="publicarBtn">Generar publicación</button>
+
+      <div id="pubEstado" style="display:none">
+        <div class="bar"><i></i></div>
+        <div class="msg" id="pubMsg">Preparando…</div>
+      </div>
+
+      <div id="pubResultado" style="display:none">
+        <div id="pubTitulos"></div>
+        <div id="pubBloques"></div>
+        <div class="vol-hint" id="pubCarpeta"></div>
+
+        <h2>Subir a YouTube</h2>
+        <div class="opciones">
+          <div>
+            <label for="ytPrivacidad">Privacidad</label>
+            <select id="ytPrivacidad">
+              <option value="privado">Privado — lo revisas tú antes (recomendado)</option>
+              <option value="oculto">Oculto — solo con el enlace</option>
+              <option value="publico">Público — visible al subirse</option>
+            </select>
+          </div>
+          <div>
+            <label for="ytCategoria">Categoría</label>
+            <select id="ytCategoria">
+              <option value="educacion">Educación</option>
+              <option value="ciencia">Ciencia y tecnología</option>
+              <option value="gente">Gente y blogs</option>
+              <option value="entretenimiento">Entretenimiento</option>
+              <option value="tutorial">Tutoriales y estilo</option>
+              <option value="noticias">Noticias y política</option>
+            </select>
+          </div>
+          <div>
+            <label for="ytProgramar">Publicar el <span class="hint">— opcional</span></label>
+            <input id="ytProgramar" type="datetime-local">
+          </div>
+        </div>
+        <button id="subirBtn">Revisar y subir</button>
+        <div class="revision" id="ytRevision"></div>
+        <div id="ytEstado" style="display:none">
+          <div class="bar"><i></i></div>
+          <div class="msg" id="ytMsg">Subiendo…</div>
+        </div>
+        <div class="aviso" id="ytAviso"></div>
+      </div>
+
+      <div class="aviso">
+        Los <b>capítulos se calculan</b> con los tiempos medidos de tu narración: la IA
+        solo decide dónde cortar y cómo llamarlos. Se aplican las reglas de YouTube
+        (mínimo 3, el primero en 00:00, 10 s entre uno y otro) o no se ponen.
+      </div>
+    </div>
+  </section>
+
+  <section class="modulo" id="mod-montaje">
+    <div class="card">
+      <div class="modos">
+        <button type="button" data-modo="guion" class="sel">Con guion — genera la voz</button>
+        <button type="button" data-modo="unir">Solo unir clips — ya traen voz</button>
+      </div>
+    </div>
+
+    <div class="card" id="cardUnir" style="display:none; margin-top:16px">
+      <label for="uniCarpeta">Carpeta con los segmentos
+        <span class="hint">— se ordenan por el número del nombre, o alfabéticamente</span>
+      </label>
+      <div class="fila-ruta">
+        <input id="uniCarpeta" type="text" placeholder="C:\Users\Lenovo\Videos\mi-video\segmentos">
+        <button type="button" class="btn-explorar" data-elegir="uniCarpeta" data-tipo="carpeta" data-filtro="video" data-titulo="Carpeta con los segmentos" title="Elegir una carpeta">📂</button>
+      </div>
+      <div class="inf-acciones" style="margin:10px 0 4px">
+        <button type="button" id="uniRevisar">Ver los segmentos</button>
+      </div>
+      <div class="md" id="uniPreview"></div>
+
+      <div class="row">
+        <div>
+          <label for="uniFormato">Formato</label>
+          <select id="uniFormato">
+            <option value="original">Original — el del primer clip</option>
+            <option value="vertical">Vertical 9:16</option>
+            <option value="horizontal">Horizontal 16:9</option>
+            <option value="cuadrado">Cuadrado 1:1</option>
+          </select>
+        </div>
+        <div>
+          <label for="uniTransicion">Transición</label>
+          <select id="uniTransicion"></select>
+        </div>
+      </div>
+
+      <div class="opciones">
+        <div>
+          <label for="uniDuracion">Duración de la transición <span class="hint">— segundos</span></label>
+          <input id="uniDuracion" type="number" min="0.1" max="3" step="0.1" value="0.5">
+        </div>
+        <div>
+          <label for="uniMusica">Música de fondo</label>
+          <select id="uniMusica"></select>
+        </div>
+        <div>
+          <label for="uniNombre">Nombre <span class="hint">— opcional</span></label>
+          <input id="uniNombre" type="text" placeholder="El de la carpeta">
+        </div>
+      </div>
+
+      <button id="unirBtn">Revisar y unir</button>
+      <div class="revision" id="uniRevision"></div>
+
+      <div id="uniEstado" style="display:none">
+        <div class="bar"><i></i></div>
+        <div class="msg" id="uniMsg">Preparando…</div>
+      </div>
+
+      <div id="uniResultado" style="display:none">
+        <video id="uniVideo" controls></video>
+        <div class="meta" id="uniMeta"></div>
+        <a class="dl" id="uniDescargar" download>↓ Descargar MP4</a>
+        <div class="vol-hint" id="uniCarpetaOut"></div>
+      </div>
+
+      <div class="aviso">
+        Los clips <b>conservan su audio</b>: no se genera voz ni subtítulos. Se igualan
+        al mismo formato recortando lo que sobre, y a los que vengan mudos se les pone
+        silencio para que el sonido del resto no se descoloque.
+        <b>Cada transición acorta el video</b>: los dos clips se solapan.
+      </div>
+    </div>
+
+    <div class="card" id="cardGuion" style="margin-top:16px">
+      <label for="monGuion">Guion
+        <span class="hint">— el mismo de siempre, o un export de StoryFlow Pro</span>
+      </label>
+      <div class="importar">
+        <label class="btn-archivo" for="monArchivo">📄 Importar guion</label>
+        <input type="file" id="monArchivo" accept=".txt,.md,.srt,text/plain">
+        <span class="importar-info" id="monArchivoInfo">o pégalo abajo · también puedes arrastrar el .txt</span>
+      </div>
+      <textarea id="monGuion" placeholder="Pega aquí el guion. Cada escena tomará un archivo de tu carpeta, en orden."></textarea>
+
+      <div class="full">
+        <label for="monCarpeta">Carpeta con tus imágenes y videos
+          <span class="hint">— ruta en este PC; si los archivos llevan el número de escena, se emparejan por él</span>
+        </label>
+        <div class="fila-ruta">
+          <input id="monCarpeta" type="text" placeholder="C:\Users\Lenovo\Videos\mi-historia\medios">
+          <button type="button" class="btn-explorar" data-elegir="monCarpeta" data-tipo="carpeta" data-filtro="imagen" data-titulo="Carpeta con tus imágenes y videos" title="Elegir una carpeta">📂</button>
+        </div>
+        <button type="button" id="verMedios" class="mini" style="width:auto; margin-top:10px; padding:8px 14px; font-size:13px; background:var(--panel-2); color:var(--text); border:1px solid var(--line)">Ver emparejamiento</button>
+        <div id="monPreview" class="md" style="margin-top:12px"></div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="monFormato">Formato</label>
+          <select id="monFormato">
+            <option value="vertical">Vertical 9:16 — Shorts, TikTok, Reels</option>
+            <option value="horizontal">Horizontal 16:9 — YouTube largo</option>
+            <option value="cuadrado">Cuadrado 1:1</option>
+          </select>
+        </div>
+        <div>
+          <label for="monVoz">Voz</label>
+          <select id="monVoz">
+            <option value="es-MX-JorgeNeural">México · Jorge (H)</option>
+            <option value="es-MX-DaliaNeural">México · Dalia (M)</option>
+            <option value="es-ES-AlvaroNeural">España · Álvaro (H)</option>
+            <option value="es-ES-ElviraNeural">España · Elvira (M)</option>
+            <option value="es-AR-TomasNeural">Argentina · Tomás (H)</option>
+            <option value="es-AR-ElenaNeural">Argentina · Elena (M)</option>
+            <option value="es-CO-GonzaloNeural">Colombia · Gonzalo (H)</option>
+            <option value="es-CO-SalomeNeural">Colombia · Salomé (M)</option>
+            <option value="es-US-AlonsoNeural">EE.UU. · Alonso (H)</option>
+            <option value="es-US-PalomaNeural">EE.UU. · Paloma (M)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="full">
+        <label for="monVozPropia">Tu narración ya grabada <span class="hint">— opcional; se usa tal cual, no se genera nada</span></label>
+        <div class="fila-ruta">
+          <input id="monVozPropia" type="text" placeholder="C:\…\narracion.mp3   ó   C:\…\voces\  (un audio por escena)">
+          <button type="button" class="btn-explorar" data-elegir="monVozPropia" data-tipo="archivo" data-filtro="audio" data-titulo="Tu narración grabada" title="Elegir un archivo">📄</button>
+          <button type="button" class="btn-explorar" data-elegir="monVozPropia" data-tipo="carpeta" data-filtro="audio" data-titulo="Tu narración grabada" title="Elegir una carpeta">📂</button>
+        </div>
+        <div class="vol-hint">
+          Un <b>MP3/WAV con toda la narración</b> se reparte entre las escenas según el
+          largo del texto (±0,2 s por escena). Una <b>carpeta con un audio por escena</b>
+          cuadra exacto: es lo recomendable si puedes exportar por bloques.
+        </div>
+      </div>
+
+      <div class="full">
+        <label for="monVozClon">Clonar tu voz <span class="hint">— opcional; una muestra y narra todo imitándola</span></label>
+        <div class="fila-ruta">
+          <input id="monVozClon" type="text" placeholder="C:\…\mi-voz.mp3   ó   C:\…\narrador\  (una carpeta también vale)">
+          <button type="button" class="btn-explorar" data-elegir="monVozClon" data-tipo="archivo" data-filtro="audio" data-titulo="Muestra de tu voz" title="Elegir un archivo">📄</button>
+          <button type="button" class="btn-explorar" data-elegir="monVozClon" data-tipo="carpeta" data-filtro="audio" data-titulo="Muestra de tu voz" title="Elegir una carpeta">📂</button>
+        </div>
+        <div class="inf-acciones" style="margin:10px 0 4px">
+          <button type="button" id="clonRevisar">Revisar la muestra</button>
+          <button type="button" id="clonOir">▶ Oír mi grabación</button>
+          <button type="button" id="clonProbar">Probar cómo sonará <small>(~1 min)</small></button>
+        </div>
+        <audio id="clonPlayer" controls style="width:100%; display:none; margin-top:8px"></audio>
+        <div class="vol-hint" id="clonNota">
+          Con <b>15-30 segundos</b> de voz limpia basta; si tu grabación es más larga, se
+          recorta sola. Corre en tu PC con Chatterbox (gratis, licencia MIT, se puede
+          monetizar). Generar el guion entero es lento: <b>prueba antes cómo suena</b>.
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="monFx">Efecto de voz</label>
+          <select id="monFx"></select>
+        </div>
+        <div>
+          <label for="monMusica">Música de fondo</label>
+          <select id="monMusica"></select>
+        </div>
+      </div>
+
+      <div class="full">
+        <label class="check">
+          <input type="checkbox" id="monSubs" checked>
+          <span>Quemar los subtítulos
+            <span class="hint">— quítalo si prefieres el máster limpio y poner el texto en tu editor</span>
+          </span>
+        </label>
+      </div>
+
+      <div class="full">
+        <label class="check">
+          <input type="checkbox" id="monReusar" checked>
+          <span>Reusar la voz ya generada
+            <span class="hint">— si generaste el audio en la pestaña 3 con <b>el mismo nombre de proyecto</b>, se usa esa misma pista en vez de volver a narrarla. Cambiar el guion o la voz la regenera sola.</span>
+          </span>
+        </label>
+      </div>
+
+      <div class="full">
+        <label for="monNombre">Nombre del proyecto <span class="hint">— opcional</span></label>
+        <input id="monNombre" type="text" placeholder="Se deduce del guion">
+      </div>
+
+      <button id="montarBtn">Revisar y montar</button>
+
+      <div class="revision" id="monRevision"></div>
+
+      <div id="monEstado" style="display:none">
+        <div class="bar"><i></i></div>
+        <div class="msg" id="monMsg">Preparando…</div>
+      </div>
+
+      <div id="monResultado" style="display:none">
+        <video id="monVideo" controls></video>
+        <div class="meta" id="monMeta"></div>
+        <a class="dl" id="monDescargar" download>↓ Descargar MP4</a>
+        <div class="vol-hint" id="monCarpetaOut"></div>
+      </div>
+
+      <div class="aviso">
+        La <b>narración manda sobre la duración</b>: cada imagen o clip dura
+        exactamente lo que dura su escena. Un clip más corto se repite; uno más largo
+        se corta. Las imágenes llevan movimiento de cámara; los videos van tal cual,
+        sin su audio original.
+      </div>
+    </div>
+  </section>
+
+  <section class="modulo" id="mod-audio">
+    <div class="card">
+      <label for="audGuion">Guion
+        <span class="hint">— texto corrido, escenas con <code>---</code>, o pega tal cual un export de StoryFlow Pro</span>
+      </label>
+      <div class="importar">
+        <label class="btn-archivo" for="audArchivo">📄 Importar guion</label>
+        <input type="file" id="audArchivo" accept=".txt,.md,.srt,text/plain">
+        <span class="importar-info" id="audArchivoInfo">o pégalo abajo · también puedes arrastrar el .txt</span>
+      </div>
+      <textarea id="audGuion" placeholder="Pega aquí el guion completo.
+
+También entiende el formato:
+ESCENA #0001 [PERSONAJE]
+NARRACIÓN: …
+TEXTO PANTALLA: …
+PROMPT: …"></textarea>
+
+      <div class="row">
+        <div>
+          <label for="audVoz">Voz</label>
+          <select id="audVoz">
+            <option value="es-MX-JorgeNeural">México · Jorge (H)</option>
+            <option value="es-MX-DaliaNeural">México · Dalia (M)</option>
+            <option value="es-ES-AlvaroNeural">España · Álvaro (H)</option>
+            <option value="es-ES-ElviraNeural">España · Elvira (M)</option>
+            <option value="es-AR-TomasNeural">Argentina · Tomás (H)</option>
+            <option value="es-AR-ElenaNeural">Argentina · Elena (M)</option>
+            <option value="es-CO-GonzaloNeural">Colombia · Gonzalo (H)</option>
+            <option value="es-CO-SalomeNeural">Colombia · Salomé (M)</option>
+            <option value="es-US-AlonsoNeural">EE.UU. · Alonso (H)</option>
+            <option value="es-US-PalomaNeural">EE.UU. · Paloma (M)</option>
+          </select>
+        </div>
+        <div>
+          <label for="audFx">Efecto de voz</label>
+          <select id="audFx"></select>
+        </div>
+      </div>
+
+      <div class="opciones">
+        <div>
+          <label for="audVel">Velocidad <span class="hint">— no cambia el tono</span></label>
+          <input id="audVel" type="number" min="0.5" max="2" step="0.05" value="1">
+        </div>
+        <div>
+          <label for="audNombre">Nombre del proyecto <span class="hint">— opcional</span></label>
+          <input id="audNombre" type="text" placeholder="Se deduce del guion">
+        </div>
+      </div>
+
+      <button id="generarAudio">Generar audio</button>
+
+      <div id="audEstado" style="display:none">
+        <div class="bar"><i></i></div>
+        <div class="msg" id="audMsg">Preparando…</div>
+      </div>
+
+      <div id="audResultado" style="display:none">
+        <audio id="audPlayer" controls style="width:100%; margin-top:4px"></audio>
+        <div class="meta" id="audMeta"></div>
+        <div class="inf-acciones">
+          <a class="dl" id="dlMp3" download>↓ MP3</a>
+          <a class="dl" id="dlEscenas" download>↓ escenas.srt</a>
+          <a class="dl" id="dlSubs" download>↓ subtitulos.srt</a>
+          <a class="dl" id="dlJson" download>↓ escenas.json</a>
+        </div>
+        <div class="vol-hint" id="audCarpeta"></div>
+      </div>
+
+      <div class="aviso">
+        Genera <b>solo la voz</b>, sin imágenes ni montaje. Deja la pista completa,
+        cada escena por separado en <code>audio/</code>, y dos SRT: <b>escenas.srt</b>
+        (cuándo entra cada imagen, para tu editor o para Google Flow) y
+        <b>subtitulos.srt</b> palabra por palabra.
+      </div>
+    </div>
+  </section>
+
+  <section class="modulo" id="mod-estudio">
+    <div class="card">
+      <div class="modos">
+        <button type="button" data-modoest="buscar" class="sel">Buscar nichos</button>
+        <button type="button" data-modoest="analizar">Analizar un canal o video</button>
+      </div>
+    </div>
+
+    <div class="card" id="cardNichos" style="margin-top:16px">
+      <label for="nicConsulta">Qué nicho quieres explorar
+        <span class="hint">— como lo buscarías en YouTube</span>
+      </label>
+      <input id="nicConsulta" type="text" placeholder="historia antigua documental · finanzas personales · misterios sin resolver">
+      <div class="inf-acciones" style="margin:10px 0 0">
+        <button type="button" id="verCatalogo">¿No sabes cuál? Ver los nichos más populares</button>
+      </div>
+      <div id="catEstado" style="display:none">
+        <div class="bar"><i></i></div>
+        <div class="msg" id="catMsg"></div>
+      </div>
+      <div id="catTabla"></div>
+
+      <div class="opciones">
+        <div>
+          <label for="nicOrden">Ordenar por</label>
+          <select id="nicOrden">
+            <option value="virales">Lo que más corre ahora (vistas/día)</option>
+            <option value="despegue">Despegue — vistas por suscriptor</option>
+            <option value="dinero">Lo que más deja (estimado)</option>
+            <option value="vistas">Vistas totales</option>
+            <option value="audiencia">Canales con más audiencia</option>
+          </select>
+        </div>
+        <div>
+          <label for="nicTipo">Formato</label>
+          <select id="nicTipo">
+            <option value="todos">Todos</option>
+            <option value="largo">Solo videos largos</option>
+            <option value="short">Solo Shorts</option>
+          </select>
+        </div>
+        <div>
+          <label for="nicLimite">Cuántos</label>
+          <input id="nicLimite" type="number" min="4" max="24" value="12">
+        </div>
+      </div>
+
+      <div class="full">
+        <label class="check">
+          <input type="checkbox" id="nicFaceless" checked>
+          <span>Solo lo que se puede hacer sin cámara
+            <span class="hint">— descarta lo que depende de una persona o de su fama</span>
+          </span>
+        </label>
+      </div>
+
+      <button id="buscarNichos">Buscar</button>
+
+      <div id="nicEstado" style="display:none">
+        <div class="bar"><i></i></div>
+        <div class="msg" id="nicMsg">Buscando…</div>
+      </div>
+
+      <div class="meta" id="nicResumen" style="display:none"></div>
+      <div class="rejilla" id="nicRejilla"></div>
+
+      <div class="aviso">
+        <b>Vistas/día</b> dice qué corre ahora; <b>×subs</b> es lo que más importa:
+        un video con 200× la audiencia de su canal lo empujó el algoritmo, no sus
+        seguidores — ahí está la fórmula que funciona sola. Los <b>ingresos</b> son
+        una estimación por el RPM del nicho: YouTube no publica el de nadie.
+      </div>
+    </div>
+
+    <div class="card" id="cardAnalizar" style="display:none; margin-top:16px">
+      <label for="estUrl">Video o canal de YouTube
+        <span class="hint">— URL de un video, o el @ / URL de un canal</span>
+      </label>
+      <input id="estUrl" type="text" placeholder="https://www.youtube.com/watch?v=…   ó   @nombredelcanal">
+
+      <div class="opciones">
+        <div>
+          <label for="estVideos">Videos a leer <span class="hint">(canal)</span></label>
+          <input id="estVideos" type="number" min="5" max="100" value="30">
+        </div>
+        <div>
+          <label for="estProf">Outliers a fondo <span class="hint">(canal)</span></label>
+          <input id="estProf" type="number" min="0" max="8" value="3">
+        </div>
+      </div>
+      <div class="full">
+        <label class="check">
+          <input type="checkbox" id="estIa" checked>
+          <span>Análisis con IA
+            <span class="hint">— gancho, estructura, fórmula de título, miniatura e ideas. Sin esto solo salen los datos medidos.</span>
+          </span>
+        </label>
+      </div>
+
+      <button id="analizar">Analizar</button>
+
+      <div id="estEstado" class="full" style="display:none">
+        <div class="bar"><i></i></div>
+        <div class="msg" id="estMsg">Preparando…</div>
+      </div>
+
+      <div id="informe">
+        <div class="inf-top" id="infTop"></div>
+        <div class="inf-acciones">
+          <button type="button" id="usarCabecera">Usar su estilo en Producción →</button>
+          <button type="button" id="crearEstetica">🎨 Crear la estética de mi canal</button>
+          <button type="button" id="guionDeInforme">✍ Escribir un guion con esta fórmula</button>
+          <button type="button" id="copiarMd">Copiar informe</button>
+        </div>
+
+        <div id="estCaja" style="display:none; margin:14px 0">
+          <label for="estExtra">Qué quieres tú <span class="hint">— opcional; manda sobre lo que deduzca la IA</span></label>
+          <input id="estExtra" type="text" placeholder="protagonista mujer joven · estilo ilustración · ambiente nocturno">
+          <button type="button" id="estGenerar">Generar el tablero (5 imágenes)</button>
+          <div id="estEstadoImg" style="display:none">
+            <div class="bar"><i></i></div>
+            <div class="msg" id="estMsgImg"></div>
+          </div>
+          <div id="estTablero"></div>
+        </div>
+        <div class="aviso" id="infAviso" style="display:none"></div>
+        <div class="vol-hint" id="infCarpeta"></div>
+        <div class="md" id="infMd"></div>
+      </div>
+
+      <div class="historial" id="historial"></div>
+      <div class="aviso">
+        Los números (vistas, <b>múltiplo</b> sobre la mediana del canal, palabras/min) se
+        miden. Los <b>ingresos</b> son una estimación por el RPM típico del nicho: YouTube no
+        publica el RPM de nadie. Replica <b>patrones</b>, no guiones: el contenido reutilizado
+        se desmonetiza.
+      </div>
+    </div>
+    <div class="card" id="guiCaja" style="display:none; margin-top:18px; background:var(--panel-2)">
+        <h2 style="margin:0 0 4px; font-size:15px; color:var(--accent); text-transform:uppercase; letter-spacing:.6px">Escribir el guion</h2>
+        <p class="vol-hint" id="guiRef" style="margin-bottom:12px"></p>
+
+        <label for="guiTema">De qué va tu video</label>
+        <input id="guiTema" type="text" placeholder="Las tres pirámides que no se construyeron como crees">
+
+        <div class="opciones">
+          <div>
+            <label for="guiMinutos">Duración <span class="hint">— minutos</span></label>
+            <input id="guiMinutos" type="number" min="0.5" max="30" step="0.5" value="3">
+          </div>
+          <div>
+            <label for="guiContexto">Tono de tu canal <span class="hint">— opcional</span></label>
+            <input id="guiContexto" type="text" placeholder="divulgación seria, sin sensacionalismo">
+          </div>
+        </div>
+
+        <button id="guiEscribir">Escribir guion</button>
+
+        <div id="guiEstado" style="display:none">
+          <div class="bar"><i></i></div>
+          <div class="msg" id="guiMsg"></div>
+        </div>
+
+        <div id="guiResultado" style="display:none">
+          <h3 id="guiTitulo" style="margin:18px 0 6px; font-size:17px"></h3>
+          <div class="meta" id="guiMeta"></div>
+          <div class="inf-acciones" style="margin-top:12px">
+            <button type="button" data-llevar="voces">🎙 Ponerle voces</button>
+            <button type="button" data-llevar="audio">Solo el audio</button>
+            <button type="button" data-llevar="montaje">Montar con mis medios</button>
+            <button type="button" data-llevar="produccion">Producir con IA</button>
+          </div>
+          <pre id="guiTexto" style="max-height:340px; overflow:auto; white-space:pre-wrap; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px; font-size:13px; margin:10px 0 6px"></pre>
+          <div class="vol-hint" id="guiRuta"></div>
+        </div>
+      </div>
+
+  </section>
+
+  <section class="modulo on" id="mod-produccion">
+  <div class="card">
+    <label for="guion">Guion
+      <span class="hint">— texto corrido, o escenas separadas por <code>---</code></span>
+    </label>
+    <div class="importar">
+      <label class="btn-archivo" for="guionArchivo">📄 Importar guion</label>
+      <input type="file" id="guionArchivo" accept=".txt,.md,.srt,text/plain">
+      <span class="importar-info" id="guionArchivoInfo">o pégalo abajo · también puedes arrastrar el .txt</span>
+    </div>
+    <textarea id="guion" placeholder="El noventa y cinco por ciento del océano sigue sin explorar.
+Conocemos mejor la superficie de Marte que el fondo de nuestro planeta."></textarea>
+
+    <div class="row">
+      <div>
+        <label for="voz">Voz</label>
+        <select id="voz">
+          <option value="es-MX-JorgeNeural">México · Jorge (H)</option>
+          <option value="es-MX-DaliaNeural">México · Dalia (M)</option>
+          <option value="es-ES-AlvaroNeural">España · Álvaro (H)</option>
+          <option value="es-ES-ElviraNeural">España · Elvira (M)</option>
+          <option value="es-AR-TomasNeural">Argentina · Tomás (H)</option>
+          <option value="es-AR-ElenaNeural">Argentina · Elena (M)</option>
+          <option value="es-CO-GonzaloNeural">Colombia · Gonzalo (H)</option>
+          <option value="es-CO-SalomeNeural">Colombia · Salomé (M)</option>
+          <option value="es-US-AlonsoNeural">EE.UU. · Alonso (H)</option>
+          <option value="es-US-PalomaNeural">EE.UU. · Paloma (M)</option>
+        </select>
+      </div>
+      <div>
+        <label for="imagenes">Imágenes</label>
+        <select id="imagenes">
+          <option value="pollinations">IA · Pollinations</option>
+          <option value="placeholder">Degradados (gratis, sin internet)</option>
+          <option value="gemini">Gemini · IA (de pago)</option>
+          <option value="openai">OpenAI · IA (de pago)</option>
+        </select>
+        <!-- Pexels no está aquí a propósito: busca fotos de stock por las tres
+             primeras palabras de la narración, así que en un video histórico o
+             narrativo devuelve cosas como carritos de supermercado y un gato.
+             Sigue disponible en la CLI con --imagenes pexels. -->
+      </div>
+    </div>
+
+    <div class="full" id="modeloBox">
+      <label for="modelo">Modelo de imagen
+        <span class="hint">— a más calidad, más pollen por imagen</span>
+      </label>
+      <select id="modelo"></select>
+    </div>
+
+    <div class="full" id="gratisBox" style="display:none">
+      <label class="check">
+        <input type="checkbox" id="gratis">
+        <span>Modo prueba gratis
+          <span class="hint">— usa el modelo básico <b>sana</b> sin gastar pollen (ignora el token). Ideal para probar el flujo; quítalo para la calidad buena.</span>
+        </span>
+      </label>
+    </div>
+
+    <div class="full">
+      <label>Estilo visual <span class="hint">— el look que se le pide a la IA</span></label>
+      <div class="chips" id="chips"></div>
+    </div>
+
+    <div class="full">
+      <label for="vozfx">Efecto de voz
+        <span class="hint">— dale carácter: grave, cripta, fantasma…</span>
+      </label>
+      <select id="vozfx"></select>
+      <div class="vol-hint">
+        No cambia el ritmo ni descuadra los subtítulos: solo el timbre.
+        <b>Automático</b> pone terror en estilos de terror/suspenso.
+      </div>
+    </div>
+
+    <div class="full">
+      <label for="proVozPropia">Tu narración ya grabada <span class="hint">— opcional; se usa tal cual, no se genera nada</span></label>
+      <div class="fila-ruta">
+        <input id="proVozPropia" type="text" placeholder="C:\…\narracion.mp3   ó   C:\…\voces\  (un audio por escena)">
+        <button type="button" class="btn-explorar" data-elegir="proVozPropia" data-tipo="archivo" data-filtro="audio" data-titulo="Tu narración grabada" title="Elegir un archivo">📄</button>
+        <button type="button" class="btn-explorar" data-elegir="proVozPropia" data-tipo="carpeta" data-filtro="audio" data-titulo="Tu narración grabada" title="Elegir una carpeta">📂</button>
+      </div>
+      <div class="vol-hint">
+        Un <b>MP3/WAV con toda la narración</b> se reparte entre las escenas según el
+        largo del texto (±0,2 s por escena). Una <b>carpeta con un audio por escena</b>
+        cuadra exacto. Con tu voz, la voz y el efecto de arriba no se usan.
+      </div>
+    </div>
+
+    <div class="full">
+      <label for="proVozClon">Clonar tu voz <span class="hint">— opcional; una muestra y narra todo imitándola</span></label>
+      <div class="fila-ruta">
+        <input id="proVozClon" type="text" placeholder="C:\…\mi-voz.mp3   ó   C:\…\narrador\  (una carpeta también vale)">
+        <button type="button" class="btn-explorar" data-elegir="proVozClon" data-tipo="archivo" data-filtro="audio" data-titulo="Muestra de tu voz" title="Elegir un archivo">📄</button>
+        <button type="button" class="btn-explorar" data-elegir="proVozClon" data-tipo="carpeta" data-filtro="audio" data-titulo="Muestra de tu voz" title="Elegir una carpeta">📂</button>
+      </div>
+      <div class="inf-acciones" style="margin:10px 0 4px">
+        <button type="button" id="proClonRevisar">Revisar la muestra</button>
+        <button type="button" id="proClonOir">▶ Oír mi grabación</button>
+        <button type="button" id="proClonProbar">Probar cómo sonará <small>(~1 min)</small></button>
+      </div>
+      <audio id="proClonPlayer" controls style="width:100%; display:none; margin-top:8px"></audio>
+      <div class="vol-hint" id="proClonNota">
+        Con <b>15-30 segundos</b> de voz limpia basta; si tu grabación es más larga, se
+        recorta sola. Corre en tu PC con Chatterbox (gratis, licencia MIT, se puede
+        monetizar). Generar el guion entero es lento: <b>prueba antes cómo suena</b>.
+      </div>
+    </div>
+
+    <div class="full">
+      <label for="musica">Música de fondo
+        <span class="hint">— baja sola cuando entra la voz</span>
+      </label>
+      <div class="musica-fila">
+        <select id="musica"></select>
+        <button type="button" id="escuchar" class="mini" title="Escuchar la pista">▶</button>
+      </div>
+      <div class="vol-fila">
+        <span class="vol-ico" title="Volumen de la música">🎵</span>
+        <input type="range" id="volumen" min="0" max="100" value="30" step="5">
+        <span id="volNum" class="vol-num">30%</span>
+      </div>
+      <div class="vol-hint">
+        Es el volumen <b>cuando la voz calla</b>; bajo la narración baja sola.
+        El botón ▶ suena a ese mismo nivel.
+      </div>
+      <audio id="preview" preload="none"></audio>
+    </div>
+
+    <div class="full">
+      <label class="check">
+        <input type="checkbox" id="director" checked>
+        <span>Director de imágenes con IA
+          <span class="hint">— escribe un prompt rico y coherente por escena (recomendado)</span>
+        </span>
+      </label>
+    </div>
+
+    <div class="full">
+      <label for="portada">Portada
+        <span class="hint">— imagen para TikTok/YouTube; se pone al inicio y se guarda aparte (opcional)</span>
+      </label>
+      <input type="file" id="portada" accept="image/*">
+      <div id="portadaPrev" class="portada-prev">
+        <img id="portadaImg" alt="portada">
+        <div>
+          <div class="portada-ok">Se antepondrá al video y se guardará como <b>portada.jpg</b> (1080×1920).</div>
+          <button type="button" id="portadaQuitar" class="mini">Quitar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="full" id="refBox">
+      <label for="refs">Personaje de referencia
+        <span class="hint">— sube una o varias fotos y ese mismo personaje saldrá en todas las escenas</span>
+      </label>
+      <input type="file" id="refs" accept="image/*" multiple>
+      <div id="refsPrev" class="refs-prev"></div>
+      <div class="portada-ok" id="refsInfo" style="margin-top:8px">
+        <b>Una sola persona por imagen</b>, recortada a ella. Si la foto tiene dos
+        personas, el modelo las fusiona y salen caras dobles. Varias fotos del mismo
+        personaje (cara, cuerpo entero, perfil) lo fijan mejor que una sola.
+      </div>
+      <label class="check" style="margin-top:10px">
+        <input type="checkbox" id="portadaComoRef">
+        <span>Usar también la portada como referencia
+          <span class="hint">— si ya subiste una arriba y sale el personaje en ella</span>
+        </span>
+      </label>
+      <div class="aviso" id="avisoRefs" style="display:none; margin-top:10px"></div>
+    </div>
+
+    <div class="full">
+      <label for="nombre">Nombre del proyecto <span class="hint">— opcional</span></label>
+      <input id="nombre" type="text" placeholder="Se deduce del guion si lo dejas vacío">
+    </div>
+
+    <button id="crear">Revisar y crear</button>
+
+    <div class="revision" id="revision"></div>
+
+    <div id="estado">
+      <div class="bar"><i></i></div>
+      <div class="msg" id="msg">Preparando…</div>
+    </div>
+
+    <div id="resultado">
+      <video id="video" controls></video>
+      <div class="vel-box">
+        <span class="vel-lbl">Velocidad</span>
+        <div class="vel-btns" id="velBtns"></div>
+        <span class="vel-estado" id="velEstado"></span>
+      </div>
+      <div class="meta" id="meta"></div>
+      <a class="dl" id="descargar" download>↓ Descargar MP4</a>
+    </div>
+
+    <div class="aviso" id="avisoPexels" style="display:none">
+      <b>Pexels</b> necesita una clave gratuita en <b>pexels.com/api</b>, pegada en el
+      archivo <code>.env</code>. Sin ella usa <b>Degradados</b> para probar.
+    </div>
+
+    <div class="aviso" id="avisoMusica" style="display:none">
+      <b>No hay pistas todavía.</b> Deja tus archivos de música en
+      <code id="carpetaMusica"></code> — una carpeta por ambiente — y aparecerán aquí.
+      Fuentes gratuitas con licencia clara: <b>pixabay.com/music</b>,
+      <b>freemusicarchive.org</b>, <b>incompetech.com</b>.
+    </div>
+
+    <div class="aviso" id="avisoAuto" style="display:none"></div>
+  </div>
+  </section>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+// ===================== El programa se cerró =====================
+//
+// La página vive en tu PC: si la ventana negra de CrearVideos se cierra, el
+// servidor desaparece y todo deja de responder. Antes eso se veía como un
+// escueto "No se pudo contactar al servidor" (o peor: un trabajo que se
+// quedaba "Montando…" para siempre). Ahora se dice lo que pasa y qué hacer.
+
+const CAIDO =
+  "El programa dejó de responder. ¿Se cerró la ventana negra de CrearVideos? " +
+  "Vuelve a abrirlo y recarga esta página.";
+
+let fallosSeguidos = 0;
+
+function avisarCaido() {
+  let banda = $("bandaCaido");
+  if (!banda) {
+    banda = document.createElement("div");
+    banda.id = "bandaCaido";
+    banda.className = "caido";
+    document.body.appendChild(banda);
+  }
+  banda.innerHTML =
+    `<b>CrearVideos no responde.</b> ${esc(CAIDO)} ` +
+    `<button type="button" onclick="location.reload()">Recargar</button>`;
+  banda.style.display = "block";
+}
+
+/** Consulta el estado de un trabajo. Devuelve null si el servidor no está. */
+async function estadoDe(id) {
+  try {
+    const e = await fetch("/api/estado?id=" + id).then((x) => x.json());
+    fallosSeguidos = 0;
+    const banda = $("bandaCaido");
+    if (banda) banda.style.display = "none";
+    return e;
+  } catch {
+    // Un fallo suelto puede ser el navegador dormido; varios seguidos ya no.
+    if (++fallosSeguidos >= 4) avisarCaido();
+    return null;
+  }
+}
+
+// Las voces, arriba del todo: las usan varios módulos, y una constante
+// declarada más abajo que su primer uso rompe el script ENTERO, no solo esa
+// línea (el resto de los botones se quedan sin conectar y nada responde).
+const VOCES = [
+  ["es-MX-JorgeNeural", "México · Jorge (H)"],
+  ["es-MX-DaliaNeural", "México · Dalia (M)"],
+  ["es-ES-AlvaroNeural", "España · Álvaro (H)"],
+  ["es-ES-ElviraNeural", "España · Elvira (M)"],
+  ["es-AR-TomasNeural", "Argentina · Tomás (H)"],
+  ["es-AR-ElenaNeural", "Argentina · Elena (M)"],
+  ["es-CO-GonzaloNeural", "Colombia · Gonzalo (H)"],
+  ["es-CO-SalomeNeural", "Colombia · Salomé (M)"],
+  ["es-US-AlonsoNeural", "EE.UU. · Alonso (H)"],
+  ["es-US-PalomaNeural", "EE.UU. · Paloma (M)"],
+];
+const btn = $("crear");
+let sondeo = null;
+let estiloSel = "cinematografico";
+
+function ajustarPollinations() {
+  // El modo gratis y el selector de modelo solo aplican a Pollinations.
+  const es = $("imagenes").value === "pollinations";
+  $("avisoPexels").style.display = $("imagenes").value === "pexels" ? "block" : "none";
+  $("gratisBox").style.display = es ? "block" : "none";
+  // En modo gratis el endpoint anónimo ignora el modelo que se le pida, así
+  // que el selector se oculta en vez de mentir sobre lo que se va a usar.
+  $("modeloBox").style.display = es && !$("gratis").checked ? "block" : "none";
+}
+$("imagenes").addEventListener("change", ajustarPollinations);
+$("gratis").addEventListener("change", ajustarPollinations);
+ajustarPollinations();
+
+async function cargarEstilos() {
+  try {
+    const r = await fetch("/api/estilos").then((x) => x.json());
+    // Efectos de voz: llegan junto con los estilos. La misma lista sirve para
+    // el módulo de audio, que arranca en "sin efecto" porque ahí no hay estilo
+    // visual del que 'auto' pueda deducir nada.
+    const selectoresFx = ["vozfx", "audFx", "monFx"];
+    selectoresFx.forEach((id) => ($(id).innerHTML = ""));
+    (r.efectos || []).forEach((e) => {
+      selectoresFx.forEach((id) => {
+        const o = document.createElement("option");
+        o.value = e.value;
+        o.textContent = e.label;
+        // Audio y montaje arrancan sin efecto: ahí no hay estilo visual del
+        // que 'auto' pueda deducir nada.
+        if (id !== "vozfx" && e.value === "none") o.selected = true;
+        $(id).appendChild(o);
+      });
+    });
+    // Modelos de imagen: llegan en la misma respuesta.
+    const mod = $("modelo");
+    mod.innerHTML = "";
+    (r.modelos || []).forEach((m) => {
+      const o = document.createElement("option");
+      o.value = m.key;
+      o.textContent = `${m.label} · ${m.pollen} pollen/img`;
+      o.dataset.refs = m.refs;   // cuántas referencias acepta, para avisar
+      if (m.key === r.modelo_actual) o.selected = true;
+      mod.appendChild(o);
+    });
+
+    // Transiciones del modo "solo unir clips".
+    const trans = $("uniTransicion");
+    trans.innerHTML = "";
+    (r.transiciones || []).forEach((t) => {
+      const o = document.createElement("option");
+      o.value = t.value;
+      o.textContent = t.label;
+      trans.appendChild(o);
+    });
+
+    const cont = $("chips");
+    cont.innerHTML = "";
+    r.estilos.forEach((s) => {
+      const chip = document.createElement("div");
+      chip.className = "chip" + (s.key === estiloSel ? " sel" : "");
+      chip.textContent = s.label;
+      chip.onclick = () => {
+        estiloSel = s.key;
+        [...cont.children].forEach((c) => c.classList.remove("sel"));
+        chip.classList.add("sel");
+        revisarAuto();  // el ambiente de la música depende del estilo
+      };
+      cont.appendChild(chip);
+    });
+  } catch {}
+}
+cargarEstilos();
+
+let biblioteca = null;
+const urlPista = {};  // value del <option> -> URL para escucharla
+
+async function cargarMusica() {
+  const sel = $("musica");
+  try {
+    biblioteca = await fetch("/api/musica").then((x) => x.json());
+    sel.innerHTML = "";
+    $("monMusica").innerHTML = "";
+    $("uniMusica").innerHTML = "";
+    biblioteca.musica.forEach((m) => {
+      const o = document.createElement("option");
+      o.value = m.value;
+      o.textContent = m.label;
+      sel.appendChild(o);
+      // La misma lista en montaje y en unir, pero por defecto sin música: ahí
+      // el video ya trae su propio audio.
+      ["monMusica", "uniMusica"].forEach((id) => {
+        const copia = o.cloneNode(true);
+        if (m.value === "no") copia.selected = true;
+        $(id).appendChild(copia);
+      });
+      if (m.url) urlPista[m.value] = m.url;
+    });
+    // Solo están "auto" y "sin música": la biblioteca no tiene pistas, así que
+    // "auto" no encontraría nada. Se dice dónde dejarlas en vez de callar.
+    if (biblioteca.musica.length <= 2) {
+      $("carpetaMusica").textContent = biblioteca.carpeta;
+      $("avisoMusica").style.display = "block";
+    }
+    revisarAuto();
+  } catch {
+    sel.innerHTML = '<option value="no">Sin música</option>';
+    $("monMusica").innerHTML = '<option value="no">Sin música</option>';
+  }
+}
+cargarMusica();
+
+// "Automática" busca en la carpeta del ambiente que toca al estilo, y cae a
+// general/. Si ninguna de las dos tiene pistas el video saldría mudo sin más
+// explicación, que es justo lo que parece un fallo. Se avisa antes.
+function revisarAuto() {
+  const aviso = $("avisoAuto");
+  if (!biblioteca || $("musica").value !== "auto") {
+    aviso.style.display = "none";
+    return;
+  }
+  const carpetas = biblioteca.carpetas || {};
+  if (!Object.keys(carpetas).length) {
+    aviso.style.display = "none";  // ya lo dice avisoMusica
+    return;
+  }
+  const ambiente = (biblioteca.moods || {})[estiloSel] || "general";
+  if (carpetas[ambiente] || carpetas["general"]) {
+    aviso.style.display = "none";
+    return;
+  }
+  const llenas = Object.keys(carpetas).join(", ");
+  aviso.innerHTML =
+    `<b>Automática no encontrará música para este estilo.</b> Buscaría en ` +
+    `<code>${ambiente}/</code> y en <code>general/</code>, y las dos están vacías ` +
+    `(tienes pistas en: <b>${llenas}</b>). Elige una pista de la lista, o deja ` +
+    `algo en <code>general/</code> para que sirva con cualquier estilo.`;
+  aviso.style.display = "block";
+}
+
+$("musica").addEventListener("change", () => { revisarAuto(); pararPreview(); });
+
+// --- volumen ---
+const vol = () => $("volumen").value / 100;  // 0..1
+$("volumen").addEventListener("input", () => {
+  $("volNum").textContent = $("volumen").value + "%";
+  // Si hay algo sonando, que el cambio se oiga en el momento.
+  $("preview").volume = vol();
+});
+
+// --- escuchar la pista antes de generar ---
+const preview = $("preview");
+const btnEscuchar = $("escuchar");
+
+function pararPreview() {
+  preview.pause();
+  preview.currentTime = 0;
+  btnEscuchar.classList.remove("suena");
+  btnEscuchar.textContent = "▶";
+}
+preview.addEventListener("ended", pararPreview);
+
+btnEscuchar.addEventListener("click", () => {
+  if (!preview.paused) { pararPreview(); return; }
+
+  const val = $("musica").value;
+  let url = urlPista[val];
+  // En "Automática" se escucha la pista que de verdad se usaría con el estilo
+  // elegido: así el botón no queda inútil justo en la opción por defecto.
+  if (val === "auto") url = urlAuto();
+  if (!url) {
+    $("volNum").textContent = val === "no" ? "sin música" : "no hay pista";
+    setTimeout(() => { $("volNum").textContent = $("volumen").value + "%"; }, 1500);
+    return;
+  }
+  preview.src = url;
+  preview.volume = vol();
+  preview.play().then(() => {
+    btnEscuchar.classList.add("suena");
+    btnEscuchar.textContent = "■";
+  }).catch(() => pararPreview());
+});
+
+// Qué pista elegiría "Automática" con el estilo actual (mismo criterio que el
+// servidor: carpeta del ambiente, si no general/). Devuelve una URL o null.
+function urlAuto() {
+  if (!biblioteca) return null;
+  const carpetas = biblioteca.carpetas || {};
+  const ambiente = (biblioteca.moods || {})[estiloSel] || "general";
+  const carpeta = carpetas[ambiente] ? ambiente : (carpetas["general"] ? "general" : null);
+  if (!carpeta) return null;
+  // La primera pista de esa carpeta que aparezca en la lista. No es
+  // necesariamente la que el servidor elige (eso depende del nombre del
+  // proyecto), pero da una muestra fiel del ambiente.
+  const op = biblioteca.musica.find((m) => m.url && m.label.startsWith(carpeta + " "));
+  return op ? op.url : null;
+}
+
+// --- portada: leer la imagen a base64 para enviarla en el POST ---
+let portadaData = "";
+$("portada").addEventListener("change", (e) => {
+  const f = e.target.files[0];
+  if (!f) { quitarPortada(); return; }
+  const lector = new FileReader();
+  lector.onload = () => {
+    portadaData = lector.result;             // dataURL base64
+    $("portadaImg").src = portadaData;
+    $("portadaPrev").classList.add("on");
+  };
+  lector.readAsDataURL(f);
+});
+function quitarPortada() {
+  portadaData = "";
+  $("portada").value = "";
+  $("portadaPrev").classList.remove("on");
+  $("portadaComoRef").checked = false;
+}
+$("portadaQuitar").addEventListener("click", quitarPortada);
+
+// --- personaje de referencia: varias imágenes, cada una en base64 ---
+let refsData = [];
+$("refs").addEventListener("change", (e) => {
+  const nuevos = [...e.target.files];
+  // Se acumulan: elegir un segundo lote no borra el primero, que es lo que
+  // uno espera al ir añadiendo fotos del mismo personaje de una en una.
+  Promise.all(nuevos.map((f) => new Promise((ok) => {
+    const l = new FileReader();
+    l.onload = () => ok(l.result);
+    l.readAsDataURL(f);
+  }))).then((datos) => {
+    refsData = refsData.concat(datos);
+    $("refs").value = "";                    // permite re-elegir el mismo archivo
+    pintarRefs();
+  });
+});
+function pintarRefs() {
+  const cont = $("refsPrev");
+  cont.innerHTML = "";
+  refsData.forEach((d, i) => {
+    const fig = document.createElement("figure");
+    const img = document.createElement("img");
+    img.src = d;
+    img.alt = "referencia " + (i + 1);
+    const x = document.createElement("button");
+    x.type = "button";
+    x.textContent = "×";
+    x.title = "Quitar";
+    x.onclick = () => { refsData.splice(i, 1); pintarRefs(); };
+    fig.append(img, x);
+    cont.appendChild(fig);
+  });
+  revisarRefs();
+}
+// El modelo elegido manda: los que no aceptan referencias no pueden fijar un
+// personaje, y callarlo haría que el usuario subiera fotos que se ignoran.
+function revisarRefs() {
+  const total = refsData.length + ($("portadaComoRef").checked ? 1 : 0);
+  const op = $("modelo").selectedOptions[0];
+  const tope = op ? Number(op.dataset.refs || 0) : 0;
+  const aviso = $("avisoRefs");
+  if (!total) { aviso.style.display = "none"; return; }
+  if (!tope) {
+    aviso.innerHTML = "El modelo <b>" + (op ? op.textContent.split(" ·")[0] : "") +
+      "</b> no acepta imágenes de referencia. Se usará <b>kontext</b> con la " +
+      "primera (0.03 pollen/escena). Para aprovecharlas todas, elige " +
+      "<b>FLUX.2 Klein</b> o <b>GPT Image 1.5</b>.";
+    aviso.style.display = "block";
+  } else if (total > tope) {
+    aviso.innerHTML = "Ese modelo acepta hasta <b>" + tope + "</b> referencias; " +
+      "se usarán las primeras " + tope + ".";
+    aviso.style.display = "block";
+  } else {
+    aviso.style.display = "none";
+  }
+}
+$("portadaComoRef").addEventListener("change", revisarRefs);
+$("modelo").addEventListener("change", revisarRefs);
+
+btn.addEventListener("click", async () => {
+  const guion = $("guion").value.trim();
+  if (!guion) { $("guion").focus(); return; }
+
+  btn.disabled = true;
+  let info = {};
+  try {
+    info = await fetch("/api/revisar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ guion }),
+    }).then((x) => x.json());
+  } catch { info = {}; }
+  btn.disabled = false;
+  if (info.error) return fallo(info.error);
+
+  const proveedor = $("imagenes").value;
+  const gratis = $("gratis").checked;
+  const modeloOpt = $("modelo").options[$("modelo").selectedIndex];
+  const pollen = modeloOpt ? parseFloat(modeloOpt.textContent.match(/([\d.]+) pollen/)?.[1] || "0") : 0;
+  const nEscenas = info.escenas || 0;
+
+  let costo = "Gratis";
+  if (proveedor === "pollinations" && !gratis && pollen) {
+    costo = `~${(pollen * nEscenas).toFixed(3)} pollen <small>(${nEscenas} imágenes)</small>`;
+  } else if (proveedor === "gemini") {
+    costo = `~$${(0.039 * nEscenas).toFixed(2)} USD <small>· Gemini es de pago</small>`;
+  } else if (proveedor === "openai") {
+    costo = `~$${(0.015 * nEscenas).toFixed(2)} USD <small>· OpenAI es de pago</small>`;
+  } else if (gratis) {
+    costo = "Gratis <small>· modelo básico sana</small>";
+  }
+
+  // Con tu voz (grabada o clonada), la voz y el efecto de arriba no suenan:
+  // la revisión lo dice para que nadie espere oír la que dejó elegida.
+  const propias = filasVozPropia(
+    $("proVozPropia").value.trim(), $("proVozClon").value.trim(), info.duracion_estimada
+  );
+  if (propias && propias.error) return fallo(propias.error);
+
+  const chipSel = document.querySelector("#chips .chip.sel");
+  const filas = [
+    { k: "Tipo de video", v: "Short vertical 1080×1920 <small>· TikTok, Reels, Shorts</small>" },
+    { k: "Guion", v: `${nEscenas} escenas · ${info.palabras || 0} palabras · <b>~${minSeg(info.duracion_estimada || 0)}</b> estimados` },
+    ...(propias || [filaVoz(textoOpcion("voz"), textoOpcion("vozfx"))]),
+    { k: "Estilo visual", v: esc(chipSel ? chipSel.textContent : "—") },
+    // El modelo, sin su precio: el costo va en su propia fila.
+    { k: "Imágenes", v: `${esc(textoOpcion("imagenes"))}${proveedor === "pollinations" ? " · " + esc(textoOpcion("modelo").split("·")[0].trim()) : ""}` },
+    { k: "Costo estimado", v: costo, alerta: !costo.startsWith("Gratis") },
+    { k: "Música", v: esc(textoOpcion("musica")) + (musicaActiva() ? ` <small>· volumen ${Math.round(vol() * 100)}%</small>` : "") },
+    { k: "Director IA", v: $("director").checked ? "sí" : "no" },
+    { k: "Portada", v: portadaData ? "sí" : "no" },
+    { k: "Personaje", v: refsData.length ? plural(refsData.length, "foto de referencia", "fotos de referencia") : "no" },
+  ];
+
+  // Las advertencias que ya están en la página, pero abajo y fáciles de no ver:
+  // que "Automática" no encontrará pista para este estilo, o que la biblioteca
+  // está vacía. Aquí es donde importan — si no, el video sale mudo.
+  [["avisoAuto", "Música"], ["avisoMusica", "Música"]].forEach(([id, k]) => {
+    const a = $(id);
+    if (a && a.style.display !== "none" && a.textContent.trim()) {
+      filas.push({ k: "Atención", v: esc(a.textContent.trim()), alerta: true });
+    }
+  });
+  mostrarRevision("revision", "Revisión antes de crear", filas, lanzarCreacion,
+    { nombre: $("voz").value, fx: $("vozfx").value });
+});
+
+function musicaActiva() {
+  const v = $("musica").value;
+  return v && v !== "no";
+}
+
+async function lanzarCreacion() {
+  const guion = $("guion").value.trim();
+  pararPreview();  // no dejar la muestra sonando encima del video
+  btn.disabled = true;
+  $("resultado").classList.remove("on");
+  $("estado").classList.add("on");
+  $("msg").className = "msg";
+  $("msg").textContent = "Preparando…";
+
+  let r;
+  try {
+    r = await fetch("/api/crear", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        guion,
+        nombre: $("nombre").value,
+        voz: $("voz").value,
+        imagenes: $("imagenes").value,
+        modelo: $("modelo").value,
+        estilo: estiloSel,
+        director: $("director").checked,
+        musica: $("musica").value,
+        volumen: vol(),
+        voz_fx: $("vozfx").value,
+        portada: portadaData,
+        referencias: refsData,
+        usar_referencia: $("portadaComoRef").checked,
+        gratis: $("gratis").checked,
+        voz_propia: $("proVozPropia").value.trim(),
+        voz_clon: $("proVozClon").value.trim(),
+      }),
+    }).then((x) => x.json());
+  } catch {
+    return fallo(CAIDO);
+  }
+
+  if (r.error) return fallo(r.error);
+  sondeo = setInterval(() => consultar(r.id), 1000);
+}
+
+async function consultar(id) {
+  let e;
+  e = await estadoDe(id);
+  if (!e) return;
+
+  if (e.estado === "trabajando") {
+    $("msg").textContent = (e.mensaje || "Trabajando") + "…";
+    return;
+  }
+  clearInterval(sondeo);
+  if (e.estado === "error") return fallo(e.mensaje);
+  if (e.estado === "listo") return listo(e);
+}
+
+let proyectoActual = null;   // nombre del proyecto del último video creado
+let videoOriginal = null;    // su URL a 1×, para volver
+
+function listo(e) {
+  $("estado").classList.remove("on");
+  btn.disabled = false;
+  proyectoActual = (e.video.match(/^\/video\/([^/]+)\//) || [])[1] || null;
+  videoOriginal = e.video;
+  mostrarVideo(e.video);
+  const costo = e.costo > 0
+    ? `<span>Costo <b>$${e.costo.toFixed(3)} USD</b></span>`
+    : `<span class="free"><b>Gratis</b></span>`;
+  $("meta").innerHTML =
+    `<span>Duración <b>${e.duracion}s</b></span>` +
+    `<span>Escenas <b>${e.escenas}</b></span>` +
+    `<span>Palabras <b>${e.palabras}</b></span>` + costo;
+  montarVelocidad();
+  $("resultado").classList.add("on");
+}
+
+function mostrarVideo(url) {
+  // Cache-busting: el video vive en la misma URL cada vez (mismo nombre de
+  // proyecto), así que sin un parámetro único el navegador mostraría el video
+  // anterior en caché — parecería que cambiar la voz "no hace nada".
+  const fresco = url + (url.includes("?") ? "&" : "?") + "v=" + Date.now();
+  const vid = $("video");
+  vid.src = fresco;
+  vid.load();
+  $("descargar").href = fresco;
+}
+
+// --- velocidad del video ya creado ---
+const VELOCIDADES = [0.75, 0.9, 1, 1.1, 1.25, 1.5];
+
+function montarVelocidad() {
+  const cont = $("velBtns");
+  cont.innerHTML = "";
+  $("velEstado").textContent = "";
+  VELOCIDADES.forEach((v) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = v === 1 ? "1×" : v + "×";
+    if (v === 1) b.classList.add("sel");
+    b.onclick = () => aplicarVelocidad(v, b);
+    cont.appendChild(b);
+  });
+}
+
+let velSondeo = null;
+
+async function aplicarVelocidad(factor, boton) {
+  if (!proyectoActual) return;
+  [...$("velBtns").children].forEach((c) => c.classList.remove("sel"));
+  boton.classList.add("sel");
+  clearInterval(velSondeo);
+
+  if (factor === 1) {          // volver al original, sin reexportar
+    $("velEstado").textContent = "";
+    mostrarVideo(videoOriginal);
+    return;
+  }
+
+  [...$("velBtns").children].forEach((c) => (c.disabled = true));
+  $("velEstado").textContent = "Ajustando velocidad… (~30 s)";
+
+  let r;
+  try {
+    r = await fetch("/api/velocidad", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ proyecto: proyectoActual, factor }),
+    }).then((x) => x.json());
+  } catch {
+    return velFallo(CAIDO);
+  }
+  if (r.error) return velFallo(r.error);
+
+  velSondeo = setInterval(async () => {
+    let e;
+    e = await estadoDe(r.id);
+    if (!e) return;
+    if (e.estado === "trabajando") return;
+    clearInterval(velSondeo);
+    [...$("velBtns").children].forEach((c) => (c.disabled = false));
+    if (e.estado === "error") return velFallo(e.mensaje);
+    if (e.estado === "listo") {
+      $("velEstado").textContent = "Listo a " + factor + "×";
+      mostrarVideo(e.video);
+    }
+  }, 1000);
+}
+
+function velFallo(texto) {
+  clearInterval(velSondeo);
+  [...$("velBtns").children].forEach((c) => (c.disabled = false));
+  $("velEstado").textContent = "Error: " + texto;
+}
+
+function fallo(texto) {
+  clearInterval(sondeo);
+  btn.disabled = false;
+  $("estado").classList.add("on");
+  $("msg").className = "msg err";
+  $("msg").textContent = texto;
+}
+
+// ===================== Buscador de nichos =====================
+//
+// La cuadrícula: cada tarjeta es un video que está funcionando, con lo que se
+// pudo medir de él. De ahí salen las dos acciones que importan: estudiar el
+// canal a fondo, o escribir un guion con esa misma fórmula.
+
+document.querySelectorAll("[data-modoest]").forEach((b) =>
+  b.addEventListener("click", () => {
+    document.querySelectorAll("[data-modoest]").forEach((o) => o.classList.remove("sel"));
+    b.classList.add("sel");
+    const buscar = b.dataset.modoest === "buscar";
+    $("cardNichos").style.display = buscar ? "block" : "none";
+    $("cardAnalizar").style.display = buscar ? "none" : "block";
+  }));
+
+let nicResultados = [];
+
+function miles(n) {
+  if (n === null || n === undefined) return "—";
+  if (n >= 1e6) return (n / 1e6).toFixed(1).replace(".0", "") + "M";
+  if (n >= 1e3) return (n / 1e3).toFixed(n >= 1e5 ? 0 : 1).replace(".0", "") + "K";
+  return String(n);
+}
+
+function tarjeta(h, i) {
+  const ing = h.ingresos;
+  const dinero = ing ? `$${miles(ing.usd[0])}–${miles(ing.usd[1])}` : "";
+  const despegue = h.vistas_por_suscriptor;
+  return `
+    <div class="tarjeta">
+      <div class="mini">
+        <img src="${esc(h.miniatura)}" alt="" referrerpolicy="no-referrer">
+        <div class="etiquetas">
+          <span class="eti">${h.tipo === "short" ? "SHORT" : "LARGO"}</span>
+          ${h.faceless === "sí" ? '<span class="eti fl">SIN CÁMARA</span>' : ""}
+          ${dinero ? `<span class="eti dinero">${dinero}</span>` : ""}
+        </div>
+      </div>
+      <div class="tarjeta-cuerpo">
+        <div class="tarjeta-titulo">${esc(h.titulo)}</div>
+        <div class="tarjeta-canal">${esc(h.canal)} · ${miles(h.suscriptores)} subs${h.nicho ? " · " + esc(h.nicho) : ""}</div>
+        <div class="tarjeta-datos">
+          <span>👁 <b>${miles(h.vistas)}</b></span>
+          ${h.vistas_dia ? `<span>📈 <b>${miles(h.vistas_dia)}</b>/día</span>` : ""}
+          ${despegue ? `<span class="${despegue >= 10 ? "alza" : ""}">✕<b>${despegue}</b> subs</span>` : ""}
+        </div>
+        ${h.por_que ? `<div class="tarjeta-porque">${esc(h.por_que)}</div>` : ""}
+        <div class="tarjeta-botones">
+          <a href="${esc(h.url)}" target="_blank" rel="noopener">Ver</a>
+          <button type="button" data-analizar="${i}">Analizar</button>
+          <button type="button" class="primario" data-guion="${i}">Guion</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+$("buscarNichos").addEventListener("click", async () => {
+  const consulta = $("nicConsulta").value.trim();
+  if (!consulta) { $("nicConsulta").focus(); return; }
+  $("buscarNichos").disabled = true;
+  $("nicRejilla").innerHTML = "";
+  $("nicResumen").style.display = "none";
+  $("nicEstado").style.display = "block";
+  $("nicMsg").className = "msg";
+  $("nicMsg").textContent = "Buscando en YouTube y midiendo cada resultado… (unos 20 s)";
+
+  let r;
+  try {
+    r = await fetch("/api/nichos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        consulta,
+        orden: $("nicOrden").value,
+        tipo: $("nicTipo").value,
+        limite: +$("nicLimite").value || 12,
+        faceless: $("nicFaceless").checked,
+      }),
+    }).then((x) => x.json());
+  } catch {
+    r = { error: CAIDO };
+  }
+  $("buscarNichos").disabled = false;
+  if (r.error) {
+    $("nicMsg").className = "msg err";
+    $("nicMsg").textContent = r.error;
+    return;
+  }
+
+  nicResultados = r.resultados || [];
+  $("nicEstado").style.display = "none";
+  if (!nicResultados.length) {
+    $("nicRejilla").innerHTML = "<p class='vol-hint'>Sin resultados. Prueba otras palabras.</p>";
+    return;
+  }
+  const res = r.resumen || {};
+  $("nicResumen").style.display = "flex";
+  $("nicResumen").innerHTML =
+    `<span>Ordenado por <b>${esc(r.orden)}</b></span>` +
+    `<span>Resultados <b>${res.total}</b></span>` +
+    `<span>Sin cámara <b>${res.faceless}</b></span>` +
+    (res.vistas_dia_mediana ? `<span>Mediana <b>${miles(res.vistas_dia_mediana)}</b>/día</span>` : "") +
+    ((res.nichos || []).length ? `<span>Nichos: ${esc(res.nichos.map((n) => n[0]).join(", "))}</span>` : "");
+  $("nicRejilla").innerHTML = nicResultados.map(tarjeta).join("");
+});
+
+$("nicConsulta").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") $("buscarNichos").click();
+});
+
+// --- catálogo: qué nichos existen y cuánto mueve cada uno ---
+
+$("verCatalogo").addEventListener("click", async () => {
+  const boton = $("verCatalogo");
+  if ($("catTabla").innerHTML) {          // ya cargado: se oculta y se enseña
+    const visible = $("catTabla").style.display !== "none";
+    $("catTabla").style.display = visible ? "none" : "block";
+    boton.textContent = visible
+      ? "¿No sabes cuál? Ver los nichos más populares"
+      : "Ocultar los nichos";
+    return;
+  }
+  boton.disabled = true;
+  $("catEstado").style.display = "block";
+  $("catMsg").className = "msg";
+  $("catMsg").textContent = "Midiendo los nichos en YouTube… (unos 15 s)";
+
+  let r;
+  try {
+    r = await fetch("/api/catalogo", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: "{}",
+    }).then((x) => x.json());
+  } catch { r = { error: CAIDO }; }
+  boton.disabled = false;
+  $("catEstado").style.display = "none";
+  if (r.error) {
+    $("catEstado").style.display = "block";
+    $("catMsg").className = "msg err";
+    $("catMsg").textContent = r.error;
+    return;
+  }
+
+  $("catTabla").innerHTML =
+    `<div class="tabla"><table class="catalogo">
+      <thead><tr>
+        <th>Nicho</th><th>RPM</th><th>Vistas del típico</th>
+        <th>USD por video</th><th>A tener en cuenta</th><th></th>
+      </tr></thead><tbody>` +
+    r.nichos.map((n, i) => {
+      const ing = n.ingresos;
+      return `<tr>
+        <td><b>${esc(n.nombre)}</b></td>
+        <td class="num">$${n.rpm_rango[0]}–${n.rpm_rango[1]}</td>
+        <td class="num">${miles(n.vistas_mediana)}</td>
+        <td class="num dinero">${ing ? "$" + miles(ing.usd[0]) + "–" + miles(ing.usd[1]) : "—"}</td>
+        <td class="nota">${esc(n.nota)}</td>
+        <td><button type="button" class="rev-escuchar" data-nicho="${i}">Explorar</button></td>
+      </tr>`;
+    }).join("") +
+    `</tbody></table></div>
+     <p class="vol-hint" style="margin-top:10px">
+       <b>Vistas del típico</b> es la mediana de los primeros resultados: mide lo que
+       consigue quien <b>ya está arriba</b> en ese nicho, no lo que sacarás tú la primera
+       semana. Sirve para comparar nichos entre sí, no para prometer nada.
+     </p>`;
+  $("catTabla").style.display = "block";
+  boton.textContent = "Ocultar los nichos";
+  catalogoActual = r.nichos;
+});
+
+let catalogoActual = [];
+
+document.addEventListener("click", (ev) => {
+  const b = ev.target.closest("[data-nicho]");
+  if (!b) return;
+  const n = catalogoActual[+b.dataset.nicho];
+  if (!n) return;
+  $("nicConsulta").value = n.consulta;
+  $("buscarNichos").click();
+  $("nicConsulta").scrollIntoView({ behavior: "smooth", block: "center" });
+});
+
+// Acciones de cada tarjeta: analizar el canal, o escribir el guion.
+document.addEventListener("click", (ev) => {
+  const analizar = ev.target.closest("[data-analizar]");
+  if (analizar) {
+    const h = nicResultados[+analizar.dataset.analizar];
+    document.querySelector('[data-modoest="analizar"]').click();
+    $("estUrl").value = h.canal_url || h.url;
+    $("analizar").click();
+    $("cardAnalizar").scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
+  const guion = ev.target.closest("[data-guion]");
+  if (guion) abrirGuion(nicResultados[+guion.dataset.guion]);
+});
+
+// --- escribir el guion con la fórmula de una tarjeta ---
+
+let guionRef = null;
+
+let guionInforme = null;   // clave del análisis, cuando el guion sale de ahí
+
+function abrirGuion(h) {
+  guionRef = h || null;
+  guionInforme = null;
+  $("guiRef").innerHTML = h
+    ? `Con la fórmula de: <b>${esc(h.titulo)}</b><br><small>${esc(h.canal)}${h.por_que ? " · " + esc(h.por_que) : ""}</small>`
+    : "Sin referencia: guion libre.";
+  $("guiResultado").style.display = "none";
+  $("guiCaja").style.display = "block";
+  $("guiTema").focus();
+  $("guiCaja").scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
+$("guiEscribir").addEventListener("click", async () => {
+  const tema = $("guiTema").value.trim();
+  if (!tema) { $("guiTema").focus(); return; }
+  $("guiEscribir").disabled = true;
+  $("guiEstado").style.display = "block";
+  $("guiMsg").className = "msg";
+  $("guiMsg").textContent = "Escribiendo el guion…";
+
+  let r;
+  try {
+    r = await fetch("/api/guion", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tema,
+        minutos: +$("guiMinutos").value || 3,
+        contexto: $("guiContexto").value,
+        informe: guionInforme,
+        referencia: guionRef
+          ? { titulo: guionRef.titulo, canal: guionRef.canal, nicho: guionRef.nicho, por_que: guionRef.por_que }
+          : null,
+      }),
+    }).then((x) => x.json());
+  } catch {
+    r = { error: CAIDO };
+  }
+  $("guiEscribir").disabled = false;
+  if (r.error) {
+    $("guiMsg").className = "msg err";
+    $("guiMsg").textContent = r.error;
+    return;
+  }
+
+  $("guiEstado").style.display = "none";
+  $("guiTitulo").textContent = r.titulo;
+  $("guiMeta").innerHTML =
+    `<span>Escenas <b>${r.escenas}</b></span><span>Palabras <b>${r.palabras}</b></span>` +
+    `<span>Duración <b>${minSeg(r.duracion)}</b></span>`;
+  $("guiTexto").textContent = r.texto;
+  $("guiRuta").textContent = "Guardado en " + r.ruta;
+  $("guiResultado").style.display = "block";
+  guionTexto = r.texto;
+});
+
+let guionTexto = "";
+
+// El puente: llevar el guion recién escrito a producir, sin copiar y pegar.
+document.querySelectorAll("[data-llevar]").forEach((b) =>
+  b.addEventListener("click", () => {
+    const destino = b.dataset.llevar;
+    const campos = { produccion: "guion", audio: "audGuion", montaje: "monGuion", voces: "vocGuion" };
+    $(campos[destino]).value = guionTexto;
+    abrirModulo(destino);
+    if (destino === "montaje") document.querySelector('[data-modo="guion"]')?.click();
+  }));
+
+// ===================== Módulo Estudio =====================
+
+const LEMAS = {
+  estudio: "Analiza videos y canales que funcionan: por qué funcionaron y cómo aplicarlo.",
+  produccion: "Pega un guion y obtén un short vertical con voz, imágenes y subtítulos.",
+  audio: "Pega un guion y obtén solo la narración, con sus marcas de tiempo.",
+  montaje: "Tus imágenes y videos + la voz y los subtítulos generados aquí.",
+  publicar: "Título, descripción, capítulos y SEO listos para pegar en YouTube.",
+  voces: "Una voz distinta para cada escena, antes de montar el video.",
+};
+
+function abrirModulo(mod) {
+  document.querySelectorAll(".modulos button").forEach((b) =>
+    b.classList.toggle("sel", b.dataset.mod === mod));
+  document.querySelectorAll(".modulo").forEach((s) =>
+    s.classList.toggle("on", s.id === "mod-" + mod));
+  document.querySelector(".wrap").classList.toggle("ancho", mod === "estudio");
+  $("lema").textContent = LEMAS[mod];
+  try { localStorage.setItem("modulo", mod); } catch {}
+  if (mod === "estudio") cargarHistorial();
+  if (mod === "publicar") cargarProyectos();
+  if (mod === "voces" || mod === "montaje") revisarVozClonada();
+}
+document.querySelectorAll(".modulos button").forEach((b) =>
+  b.addEventListener("click", () => abrirModulo(b.dataset.mod)));
+
+// Markdown mínimo: lo justo para el informe (títulos, listas, tablas, citas,
+// bloques de código, negrita, cursiva, código y enlaces). Se escapa todo el
+// HTML antes, así que un título de YouTube con una etiqueta dentro se muestra
+// como texto en vez de ejecutarse.
+function esc(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function enLinea(s) {
+  const codigos = [];
+  s = esc(s).replace(/`([^`]+)`/g, (_, c) => { codigos.push(c); return "\u0000" + (codigos.length - 1) + "\u0000"; });
+  s = s
+    .replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+    .replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>")
+    .replace(/(^|[\s(])_([^_]+)_(?=[\s.,:;)]|$)/g, "$1<i>$2</i>");
+  return s.replace(/\u0000(\d+)\u0000/g, (_, i) => "<code>" + codigos[+i] + "</code>");
+}
+function markdown(md) {
+  const out = [];
+  const lineas = md.split("\n");
+  for (let i = 0; i < lineas.length; i++) {
+    const l = lineas[i];
+    if (l.startsWith("```")) {
+      const buf = [];
+      while (++i < lineas.length && !lineas[i].startsWith("```")) buf.push(lineas[i]);
+      out.push("<pre><code>" + esc(buf.join("\n")) + "</code></pre>");
+    } else if (/^#{1,3} /.test(l)) {
+      const n = l.match(/^#+/)[0].length;
+      out.push(`<h${n}>${enLinea(l.slice(n + 1))}</h${n}>`);
+    } else if (l.startsWith("|")) {
+      const filas = [];
+      for (; i < lineas.length && lineas[i].startsWith("|"); i++) filas.push(lineas[i]);
+      i--;
+      const celdas = (f) => f.replace(/^\||\|$/g, "").split("|").map((c) => enLinea(c.trim()));
+      const cuerpo = filas.slice(2).map((f) => "<tr><td>" + celdas(f).join("</td><td>") + "</td></tr>");
+      out.push('<div class="tabla"><table><thead><tr><th>' + celdas(filas[0]).join("</th><th>") +
+        "</th></tr></thead><tbody>" + cuerpo.join("") + "</tbody></table></div>");
+    } else if (l.startsWith("- ")) {
+      const items = [];
+      for (; i < lineas.length && (lineas[i].startsWith("- ") || lineas[i].startsWith("  ")); i++) {
+        if (lineas[i].startsWith("- ")) items.push(enLinea(lineas[i].slice(2)));
+        else items[items.length - 1] += "<br>" + enLinea(lineas[i].trim());
+      }
+      i--;
+      out.push("<ul><li>" + items.join("</li><li>") + "</li></ul>");
+    } else if (l.startsWith("> ")) {
+      out.push("<blockquote>" + enLinea(l.slice(2)) + "</blockquote>");
+    } else if (l.trim()) {
+      out.push("<p>" + enLinea(l) + "</p>");
+    }
+  }
+  return out.join("\n");
+}
+
+let informeActual = null;
+let estSondeo = null;
+
+function mostrarInforme(r) {
+  informeActual = r;
+  $("estEstado").style.display = "none";
+  $("analizar").disabled = false;
+  $("infTop").innerHTML = r.miniatura
+    ? `<img src="${esc(r.miniatura)}" alt="miniatura">` : "";
+  $("infMd").innerHTML = markdown(r.md);
+  $("infCarpeta").textContent = "Guardado en " + r.carpeta;
+  $("infAviso").style.display = r.aviso ? "block" : "none";
+  $("infAviso").textContent = r.aviso || "";
+  $("usarCabecera").style.display = r.cabecera ? "" : "none";
+  $("informe").classList.add("on");
+  cargarHistorial();
+}
+
+function estFallo(texto) {
+  clearInterval(estSondeo);
+  $("analizar").disabled = false;
+  $("estEstado").style.display = "block";
+  $("estMsg").className = "msg err";
+  $("estMsg").textContent = texto;
+}
+
+$("analizar").addEventListener("click", async () => {
+  const url = $("estUrl").value.trim();
+  if (!url) { $("estUrl").focus(); return; }
+  $("analizar").disabled = true;
+  $("informe").classList.remove("on");
+  $("estEstado").style.display = "block";
+  $("estMsg").className = "msg";
+  $("estMsg").textContent = "Preparando…";
+
+  let r;
+  try {
+    r = await fetch("/api/analizar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url,
+        videos: +$("estVideos").value || 30,
+        profundidad: +$("estProf").value,
+        ia: $("estIa").checked,
+      }),
+    }).then((x) => x.json());
+  } catch {
+    return estFallo(CAIDO);
+  }
+  if (r.error) return estFallo(r.error);
+
+  estSondeo = setInterval(async () => {
+    let e;
+    e = await estadoDe(r.id);
+    if (!e) return;
+    if (e.estado === "trabajando") {
+      $("estMsg").textContent = (e.mensaje || "Trabajando") + "…";
+      return;
+    }
+    clearInterval(estSondeo);
+    if (e.estado === "error") return estFallo(e.mensaje);
+    if (e.estado === "listo") mostrarInforme(e);
+  }, 1000);
+});
+$("estUrl").addEventListener("keydown", (ev) => { if (ev.key === "Enter") $("analizar").click(); });
+
+// Puente al módulo de producción: la cabecera visual del nicho encabeza el guion.
+$("usarCabecera").addEventListener("click", () => {
+  if (!informeActual || !informeActual.cabecera) return;
+  const actual = $("guion").value.replace(/^(estilo|paleta|evitar)\s*:.*\n?/gim, "").replace(/^\s*---\s*\n/, "");
+  $("guion").value = informeActual.cabecera + "\n---\n" + actual.trimStart();
+  abrirModulo("produccion");
+  $("guion").focus();
+});
+
+$("copiarMd").addEventListener("click", async () => {
+  if (!informeActual) return;
+  try {
+    await navigator.clipboard.writeText(informeActual.md);
+    $("copiarMd").textContent = "Copiado ✓";
+  } catch {
+    $("copiarMd").textContent = "No se pudo copiar";
+  }
+  setTimeout(() => ($("copiarMd").textContent = "Copiar informe"), 1800);
+});
+
+async function cargarHistorial() {
+  let r;
+  try { r = await fetch("/api/estudio").then((x) => x.json()); } catch { return; }
+  const cont = $("historial");
+  if (!r.analisis || !r.analisis.length) { cont.innerHTML = ""; return; }
+  cont.innerHTML = '<label>Análisis anteriores</label>';
+  r.analisis.slice(0, 20).forEach((a) => {
+    const link = document.createElement("a");
+    link.href = "#";
+    link.innerHTML = `<span>${a.tipo === "canal" ? "📺" : "🎬"} ${esc(a.titulo || a.clave)}</span>` +
+      `<small>${esc((a.fecha || "").replace("T", " ").slice(0, 16))}</small>`;
+    link.onclick = async (ev) => {
+      ev.preventDefault();
+      await abrirInforme(a.clave);
+      $("informe").scrollIntoView({ behavior: "smooth" });
+    };
+    cont.appendChild(link);
+  });
+}
+
+// ===================== Revisión antes de generar =====================
+//
+// Generar un video tarda minutos y, con IA de imagen, cuesta pollen. Antes de
+// arrancar se enseña TODO lo elegido en una sola pantalla —formato, voz,
+// música, subtítulos, escenas, duración estimada, costo— y se puede escuchar
+// la voz. Es más barato leer diez líneas que descubrir a los tres minutos que
+// la voz era la de España.
+
+function plural(n, singular, plural_) {
+  return `${n} ${n === 1 ? singular : plural_}`;
+}
+
+/** Cuánto tarda clonar: ~8 s de proceso por cada segundo de narración. */
+function clonTiempo(segundosAudio) {
+  const total = segundosAudio * 8;
+  if (total < 90) return "menos de 2 minutos";
+  if (total < 5400) return `unos ${Math.round(total / 60)} minutos`;
+  return `unas ${(total / 3600).toFixed(1)} horas`;
+}
+
+function minSeg(segundos) {
+  const m = Math.floor(segundos / 60), s = Math.round(segundos % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+/** Texto de la opción elegida en un desplegable. */
+function textoOpcion(id) {
+  const sel = $(id);
+  return sel && sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : "";
+}
+
+let muestraAudio = null;
+
+async function escucharVoz(voz, fx, boton) {
+  if (muestraAudio) { muestraAudio.pause(); muestraAudio = null; }
+  const original = boton.textContent;
+  boton.textContent = "…";
+  boton.disabled = true;
+  try {
+    const r = await fetch("/api/muestra-voz", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ voz, voz_fx: fx }),
+    }).then((x) => x.json());
+    if (r.error) throw new Error(r.error);
+    muestraAudio = new Audio(r.url);
+    muestraAudio.play();
+    muestraAudio.onended = () => { boton.textContent = original; boton.disabled = false; };
+    boton.textContent = "♪";
+    return;
+  } catch {
+    boton.textContent = "no se pudo";
+  }
+  boton.disabled = false;
+  setTimeout(() => (boton.textContent = original), 2000);
+}
+
+/**
+ * Pinta la pantalla de revisión.
+ * `filas` es [{k, v, alerta}] y `onConfirmar` se llama al aceptar.
+ */
+function mostrarRevision(panelId, titulo, filas, onConfirmar, voz) {
+  const panel = $(panelId);
+  panel.innerHTML =
+    `<h3>${esc(titulo)}</h3>` +
+    `<p class="sub">Revisa antes de generar. Si algo no es lo que querías, vuelve y cámbialo.</p>` +
+    filas.map((f) =>
+      `<div class="rev-fila"><div class="k">${esc(f.k)}</div>` +
+      `<div class="v${f.alerta ? " alerta" : ""}">${f.v}</div></div>`
+    ).join("") +
+    `<div class="rev-botones">` +
+    `<button type="button" class="volver" data-rev="volver">← Volver a ajustar</button>` +
+    `<button type="button" data-rev="ok">Sí, generar</button>` +
+    `</div>`;
+
+  const escuchar = panel.querySelector("[data-escuchar]");
+  if (escuchar) {
+    escuchar.onclick = () => escucharVoz(voz.nombre, voz.fx, escuchar);
+  }
+  panel.querySelector('[data-rev="volver"]').onclick = () => {
+    panel.classList.remove("on");
+    if (muestraAudio) { muestraAudio.pause(); muestraAudio = null; }
+  };
+  panel.querySelector('[data-rev="ok"]').onclick = () => {
+    panel.classList.remove("on");
+    if (muestraAudio) { muestraAudio.pause(); muestraAudio = null; }
+    onConfirmar();
+  };
+  panel.classList.add("on");
+  panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+/** Fila de voz, con el botón para escucharla. */
+function filaVoz(textoVoz, textoFx) {
+  return {
+    k: "Voz",
+    v: `${esc(textoVoz)} <small>· ${esc(textoFx)}</small>` +
+       `<button type="button" class="rev-escuchar" data-escuchar>▶ escuchar</button>`,
+  };
+}
+
+// ===================== Elegir rutas con el explorador =====================
+//
+// El navegador no puede dar la ruta real de una carpeta (seguridad), pero el
+// servidor corre en el mismo PC: abre el diálogo nativo de Windows y devuelve
+// lo que elijas. Desde el móvil no aplica —la ventana saldría en el PC— y se
+// avisa en vez de dejar el botón colgado.
+
+document.addEventListener("click", async (ev) => {
+  const boton = ev.target.closest("[data-elegir]");
+  if (!boton) return;
+  const campo = $(boton.dataset.elegir);
+  if (!campo) return;
+
+  const antes = boton.textContent;
+  boton.disabled = true;
+  boton.classList.add("esperando");
+  boton.textContent = "…";
+  try {
+    const r = await fetch("/api/elegir", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tipo: boton.dataset.tipo,
+        filtro: boton.dataset.filtro,
+        titulo: boton.dataset.titulo,
+      }),
+    }).then((x) => x.json());
+    if (r.error) {
+      alert(r.error);
+    } else if (r.ruta) {
+      campo.value = r.ruta;
+      // Hay campos que reaccionan al cambio (revisar medios, asignar voces).
+      campo.dispatchEvent(new Event("change", { bubbles: true }));
+      campo.focus();
+    }
+  } catch {
+    alert(CAIDO);
+  }
+  boton.disabled = false;
+  boton.classList.remove("esperando");
+  boton.textContent = antes;
+});
+
+// ===================== Importar guion desde archivo =====================
+
+/** Cuántas escenas saldrían, para confirmar que el archivo se leyó entero. */
+function contarEscenas(texto) {
+  const storyflow = texto.match(/^\s*ESCENA\s*#/gim);
+  if (storyflow) return { n: storyflow.length, formato: "StoryFlow Pro" };
+  const bloques = texto
+    .split(/^\s*-{3,}\s*$/m)
+    .filter((b) => b.trim())
+    // La cabecera (estilo:, época:, paleta:…) va antes del primer --- y no se
+    // narra: contarla diría una escena de más.
+    .filter((b) => !/^\s*(estilo|epoca|época|era|protagonistas|personajes|reparto|paleta|colores|evitar|prohibido|nunca)\s*:/i.test(b.trim().split("\n")[0]) || b.split("\n").some((l) => l.trim() && !/^\s*\w+\s*:/.test(l)));
+  if (bloques.length > 1) return { n: bloques.length, formato: "escenas con ---" };
+  return { n: 0, formato: "texto corrido" };
+}
+
+/** Lee un .txt respetando los acentos, venga en UTF-8 o en ANSI de Windows. */
+function leerTexto(file) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onerror = () => reject(fr.error);
+    fr.onload = () => {
+      const texto = fr.result;
+      // El carácter de reemplazo delata un archivo que no era UTF-8: el Bloc
+      // de notas de Windows todavía guarda en ANSI, y ahí "narración" llegaría
+      // como "narraci?n". Se reintenta con windows-1252 antes de rendirse.
+      if (texto.includes("�")) {
+        const fr2 = new FileReader();
+        fr2.onload = () => resolve(fr2.result);
+        fr2.onerror = () => resolve(texto);
+        fr2.readAsText(file, "windows-1252");
+      } else {
+        resolve(texto);
+      }
+    };
+    fr.readAsText(file, "utf-8");
+  });
+}
+
+async function cargarGuion(file, areaId, infoId) {
+  if (!file) return;
+  const info = $(infoId);
+  try {
+    const texto = await leerTexto(file);
+    $(areaId).value = texto;
+    const { n, formato } = contarEscenas(texto);
+    const kb = Math.max(1, Math.round(file.size / 1024));
+    info.innerHTML =
+      `<b>${esc(file.name)}</b> · ${kb} KB · ${formato}` +
+      (n ? ` · ${n} escenas` : "") + " · listo";
+  } catch {
+    info.textContent = "No se pudo leer el archivo.";
+  }
+}
+
+/** Botón de archivo + arrastrar y soltar sobre el propio cuadro del guion. */
+function montarImportador(inputId, areaId, infoId) {
+  const input = $(inputId), area = $(areaId);
+  if (!input || !area) return;
+  input.addEventListener("change", () => cargarGuion(input.files[0], areaId, infoId));
+
+  ["dragenter", "dragover"].forEach((ev) =>
+    area.addEventListener(ev, (e) => {
+      e.preventDefault();
+      area.classList.add("soltando");
+    }));
+  ["dragleave", "drop"].forEach((ev) =>
+    area.addEventListener(ev, () => area.classList.remove("soltando")));
+  area.addEventListener("drop", (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) cargarGuion(file, areaId, infoId);
+  });
+}
+
+// Voz base: la misma lista que el resto de módulos.
+VOCES.forEach(([v, n]) => {
+  const o = document.createElement("option");
+  o.value = v;
+  o.textContent = n;
+  $("vocBase").appendChild(o);
+});
+
+montarImportador("vocArchivo", "vocGuion", "vocArchivoInfo");
+montarImportador("guionArchivo", "guion", "guionArchivoInfo");
+montarImportador("audArchivo", "audGuion", "audArchivoInfo");
+montarImportador("monArchivo", "monGuion", "monArchivoInfo");
+
+// ===================== Voz clonada: ¿está instalada? =====================
+//
+// Son 5 GB que no viajan dentro del programa. Antes esto se descubría al
+// pulsar "generar", con un mensaje que pedía comandos de terminal que quien
+// recibe el .exe no tiene. Ahora se comprueba al entrar y se ofrece el botón
+// que lo instala todo solo.
+
+let clonInstalada = null;
+
+async function revisarVozClonada() {
+  try {
+    clonInstalada = await fetch("/api/voz-estado").then((x) => x.json());
+  } catch { return; }
+  const falta = $("vocClonFalta");
+  const boton = $("vocInstalarClon");
+  if (!falta || !boton) return;
+
+  if (clonInstalada.instalada) {
+    falta.style.display = "none";
+    boton.style.display = "none";
+    return;
+  }
+  falta.style.display = "block";
+  falta.innerHTML =
+    `<b>La voz clonada no está instalada en este equipo.</b> ` +
+    `Son unos <b>${clonInstalada.gb} GB</b> que se descargan una sola vez. ` +
+    `Todo lo demás del programa funciona sin ella. ` +
+    `Con tarjeta gráfica NVIDIA va mucho más rápido.`;
+  boton.style.display = "";
+  boton.textContent = `Instalar voz clonada (≈${clonInstalada.gb} GB)`;
+}
+
+$("vocInstalarClon").addEventListener("click", async () => {
+  const boton = $("vocInstalarClon");
+  boton.disabled = true;
+  $("vocInstalando").style.display = "block";
+  $("vocInstalarMsg").className = "msg";
+  $("vocInstalarMsg").textContent = "Empezando…";
+
+  let r;
+  try {
+    r = await fetch("/api/instalar-voz", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" })
+      .then((x) => x.json());
+  } catch {
+    r = { error: CAIDO };
+  }
+  if (r.error) {
+    boton.disabled = false;
+    $("vocInstalarMsg").className = "msg err";
+    $("vocInstalarMsg").textContent = r.error;
+    return;
+  }
+
+  const sondeo = setInterval(async () => {
+    const e = await estadoDe(r.id);
+    if (!e) return;
+    if (e.estado === "trabajando") {
+      $("vocInstalarMsg").textContent = (e.mensaje || "Instalando") + "…";
+      return;
+    }
+    clearInterval(sondeo);
+    boton.disabled = false;
+    if (e.estado === "error") {
+      $("vocInstalarMsg").className = "msg err";
+      $("vocInstalarMsg").textContent = e.mensaje;
+      return;
+    }
+    $("vocInstalando").style.display = "none";
+    $("vocClonNota").textContent = e.mensaje || "Instalada.";
+    revisarVozClonada();
+  }, 2000);
+});
+
+// ===================== Módulo Voces por escena =====================
+//
+// La idea: oír cada escena, cambiar la voz de la que no convenza, y que eso
+// NO obligue a rehacer el resto. El servidor solo regenera lo que cambió.
+
+let vocDatos = null;
+let vocSondeo = null;
+
+function vocCuerpo(extra) {
+  return JSON.stringify({
+    guion: $("vocGuion").value.trim(),
+    nombre: $("vocNombre").value,
+    voz: $("vocBase").value,
+    carpeta: $("vocCarpeta").value.trim(),
+    muestra: $("vocMuestra").value.trim(),
+    ...extra,
+  });
+}
+
+//: Las dos opciones que no son una voz de la lista, sino una fuente distinta.
+const VOZ_PROPIA = "__propia__";
+const VOZ_CLON = "__clon__";
+
+async function vocLlamar(ruta, extra, mensaje) {
+  if (mensaje) {
+    $("vocEstado").style.display = "block";
+    $("vocMsg").className = "msg";
+    $("vocMsg").textContent = mensaje;
+  }
+  try {
+    const r = await fetch(ruta, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: vocCuerpo(extra),
+    }).then((x) => x.json());
+    if (r.error) {
+      $("vocEstado").style.display = "block";
+      $("vocMsg").className = "msg err";
+      $("vocMsg").textContent = r.error;
+      return null;
+    }
+    return r;
+  } catch {
+    $("vocEstado").style.display = "block";
+    $("vocMsg").className = "msg err";
+    $("vocMsg").textContent = CAIDO;
+    return null;
+  }
+}
+
+function vocPintar(r) {
+  vocDatos = r;
+  $("vocEstado").style.display = "none";
+  const res = r.resumen;
+  $("vocResumen").innerHTML =
+    `<span>Escenas <b>${res.total}</b></span>` +
+    `<span>Listas <b>${res.generadas}</b></span>` +
+    (res.pendientes ? `<span class="free">Pendientes <b>${res.pendientes}</b></span>` : "") +
+    `<span>Duración <b>${minSeg(res.duracion)}</b></span>` +
+    `<span>Voces <b>${res.voces.length}</b></span>` +
+    (res.propias ? `<span>🎤 Tuyas <b>${res.propias}</b></span>` : "") +
+    (res.clonadas ? `<span>🧬 Clonadas <b>${res.clonadas}</b></span>` : "");
+  if (res.avisos && res.avisos.length) {
+    $("vocResumen").innerHTML +=
+      `<span style="color:var(--danger)">${esc(res.avisos.join(" · "))}</span>`;
+  }
+
+  const opciones = (e) => {
+    const sel = e.tipo === "propia" ? VOZ_PROPIA : e.tipo === "clonada" ? VOZ_CLON : e.voz;
+    const lista = VOCES.map(([v, n]) =>
+      `<option value="${v}"${v === sel ? " selected" : ""}>${esc(n)}</option>`).join("");
+    return lista +
+      `<option value="${VOZ_PROPIA}"${sel === VOZ_PROPIA ? " selected" : ""}>🎤 Mi grabación</option>` +
+      `<option value="${VOZ_CLON}"${sel === VOZ_CLON ? " selected" : ""}>🧬 Voz clonada</option>`;
+  };
+  // La marca de origen va DELANTE del texto: si fuera detrás, los puntos
+  // suspensivos del texto largo se la comerían justo cuando más importa.
+  const detalle = (e) => {
+    if (e.aviso) return `<span class="voz-fuente err">⚠ ${esc(e.aviso)}</span>`;
+    if (e.tipo === "propia") {
+      return `<span class="voz-fuente">🎤 ${esc((e.archivo || "").split(/[\\/]/).pop())}</span>`;
+    }
+    if (e.tipo === "clonada") return '<span class="voz-fuente">🧬 tu voz</span>';
+    return "";
+  };
+
+  $("vocTabla").innerHTML = r.escenas.map((e) => `
+    <div class="voz-fila${e.generada ? "" : " pendiente"}">
+      <div class="voz-n">${e.n}</div>
+      <div class="voz-texto">${detalle(e)}<span class="voz-linea">${esc(e.texto)}</span></div>
+      <select class="voz-sel" data-escena="${e.n - 1}">${opciones(e)}</select>
+      <div class="voz-acciones">
+        <button type="button" class="rev-escuchar" data-oir="${e.n - 1}" ${e.url ? "" : "disabled"}>▶</button>
+        <button type="button" class="rev-escuchar" data-rehacer="${e.n - 1}">↻</button>
+        <span class="voz-dura">${e.generada ? e.duracion.toFixed(1) + "s" : "—"}</span>
+      </div>
+    </div>`).join("");
+}
+
+$("vocPreparar").addEventListener("click", async () => {
+  if (!$("vocGuion").value.trim()) { $("vocGuion").focus(); return; }
+  const r = await vocLlamar("/api/voces/asignar", { voz: $("vocBase").value, todas: true },
+    "Partiendo el guion en escenas…");
+  if (r) { vocPintar(r); $("vocPanel").style.display = "block"; }
+});
+
+// Cambiar la fuente de una escena: se asigna y se regenera solo esa.
+document.addEventListener("change", async (ev) => {
+  const sel = ev.target.closest(".voz-sel");
+  if (!sel) return;
+  const i = +sel.dataset.escena;
+
+  let extra;
+  if (sel.value === VOZ_PROPIA) {
+    if (!$("vocCarpeta").value.trim()) {
+      $("vocCarpeta").focus();
+      return vocError("Primero indica dónde están tus audios, arriba.");
+    }
+    extra = { tipo: "propia", escenas: [i] };
+  } else if (sel.value === VOZ_CLON) {
+    if (!$("vocMuestra").value.trim()) {
+      $("vocMuestra").focus();
+      return vocError("Primero indica la muestra de tu voz, arriba.");
+    }
+    extra = { tipo: "clonada", escenas: [i] };
+  } else {
+    extra = { tipo: "generada", voz: sel.value, escenas: [i] };
+  }
+
+  const r = await vocLlamar("/api/voces/asignar", extra);
+  if (!r) return;
+  vocPintar(r);
+  const cual = r.escenas[i] || {};
+  if (cual.aviso) return;   // falta el archivo: no tiene sentido intentar generar
+  vocGenerarEscenas(
+    [i],
+    sel.value === VOZ_CLON
+      ? `Clonando tu voz en la escena ${i + 1}… (puede tardar un minuto)`
+      : `Generando la escena ${i + 1}…`
+  );
+});
+
+function vocError(texto) {
+  $("vocEstado").style.display = "block";
+  $("vocMsg").className = "msg err";
+  $("vocMsg").textContent = texto;
+}
+
+$("vocProbarClon").addEventListener("click", async () => {
+  const ruta = $("vocMuestra").value.trim();
+  if (!ruta) { $("vocMuestra").focus(); return; }
+  const boton = $("vocProbarClon");
+  const antes = boton.innerHTML;
+  boton.disabled = true;
+  boton.textContent = "Generando…";
+  $("vocClonNota").textContent = "La primera vez tarda ~1 minuto.";
+  try {
+    const r = await fetch("/api/prueba-clon", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ruta }),
+    }).then((x) => x.json());
+    if (r.error) {
+      $("vocClonNota").textContent = r.error;
+    } else {
+      const p = $("vocPlayer");
+      p.src = r.url + "?v=" + Date.now();
+      p.style.display = "block";
+      p.play();
+      $("vocClonNota").textContent = "Así sonarán las escenas que marques como clonadas.";
+    }
+  } catch {
+    $("vocClonNota").textContent = CAIDO;
+  }
+  boton.disabled = false;
+  boton.innerHTML = antes;
+});
+
+document.addEventListener("click", async (ev) => {
+  const oir = ev.target.closest("[data-oir]");
+  if (oir && vocDatos) {
+    const e = vocDatos.escenas[+oir.dataset.oir];
+    if (!e || !e.url) return;
+    const p = $("vocPlayer");
+    p.src = e.url + "?v=" + Date.now();
+    p.style.display = "block";
+    p.play();
+    return;
+  }
+  const rehacer = ev.target.closest("[data-rehacer]");
+  if (rehacer) {
+    const i = +rehacer.dataset.rehacer;
+    vocGenerarEscenas([i], `Rehaciendo la escena ${i + 1}…`);
+  }
+});
+
+async function vocGenerarEscenas(solo, mensaje) {
+  const r = await vocLlamar("/api/voces/generar", solo ? { solo } : {}, mensaje);
+  if (!r) return;
+  clearInterval(vocSondeo);
+  vocSondeo = setInterval(async () => {
+    let e;
+    e = await estadoDe(r.id);
+    if (!e) return;
+    if (e.estado === "trabajando") {
+      $("vocMsg").textContent = (e.mensaje || "Generando") + "…";
+      return;
+    }
+    clearInterval(vocSondeo);
+    if (e.estado === "error") {
+      $("vocMsg").className = "msg err";
+      $("vocMsg").textContent = e.mensaje;
+      return;
+    }
+    vocPintar(e);
+  }, 1000);
+}
+
+$("vocGenerar").addEventListener("click", () =>
+  vocGenerarEscenas(null, "Generando las escenas que faltan…"));
+
+$("vocUnir").addEventListener("click", async () => {
+  const r = await vocLlamar("/api/voces/unir", {}, "Uniendo toda la narración…");
+  if (!r) return;
+  $("vocEstado").style.display = "none";
+  const p = $("vocPlayer");
+  p.src = r.url + "?v=" + Date.now();
+  p.style.display = "block";
+  p.play();
+});
+
+// ===================== Guion desde el análisis =====================
+//
+// El análisis ya averiguó el gancho, la estructura parte por parte, cómo
+// retiene y en qué tono. Aquí eso se le pasa ENTERO al guionista, en vez del
+// título suelto que se mandaba desde el buscador de nichos. Y las ideas que
+// propuso el propio análisis se ofrecen como punto de partida: salieron de
+// mirar lo que funciona en ese canal.
+
+$("guionDeInforme").addEventListener("click", () => {
+  if (!informeActual) return;
+  if (informeActual.tiene_formula === false) {
+    alert("Ese análisis se hizo sin IA, así que no tiene fórmula que copiar. " +
+          "Vuelve a analizarlo con el análisis de IA activado.");
+    return;
+  }
+  guionRef = null;                       // la referencia va por clave, completa
+  guionInforme = informeActual.clave || null;
+
+  const ideas = informeActual.ideas || [];
+  $("guiRef").innerHTML =
+    `Con la <b>fórmula completa</b> de este análisis: su gancho, su estructura, ` +
+    `sus técnicas de retención y su tono.` +
+    (ideas.length
+      ? `<br><br><b>Ideas que propuso el análisis</b> — pulsa una para usarla:<div class="chips" style="margin-top:8px">` +
+        ideas.map((i, n) => `<div class="chip" data-idea="${n}">${esc(i.titulo)}</div>`).join("") +
+        `</div>`
+      : "");
+  $("guiResultado").style.display = "none";
+  $("guiCaja").style.display = "block";
+  $("guiCaja").scrollIntoView({ behavior: "smooth", block: "center" });
+});
+
+// Pulsar una idea la mete como tema del guion.
+document.addEventListener("click", (ev) => {
+  const chip = ev.target.closest("[data-idea]");
+  if (!chip || !informeActual) return;
+  const idea = (informeActual.ideas || [])[+chip.dataset.idea];
+  if (!idea) return;
+  document.querySelectorAll("[data-idea]").forEach((c) => c.classList.remove("sel"));
+  chip.classList.add("sel");
+  $("guiTema").value = idea.titulo + (idea.angulo ? ". " + idea.angulo : "");
+  $("guiTema").focus();
+});
+
+// ===================== Estética del canal =====================
+//
+// Lo que engancha antes que el contenido es cómo se ve. Del análisis de un
+// canal que funciona salen su paleta, su luz y su tipo de encuadre; con eso se
+// construye una identidad PROPIA: personaje, escena, miniatura, avatar y
+// portada. El personaje se repite literal en las cuatro piezas donde sale,
+// porque si cambia de cara en cada imagen no hay canal que valga.
+
+$("crearEstetica").addEventListener("click", () => {
+  const abierto = $("estCaja").style.display !== "none";
+  $("estCaja").style.display = abierto ? "none" : "block";
+  if (!abierto) $("estExtra").focus();
+});
+
+$("estGenerar").addEventListener("click", async () => {
+  if (!informeActual || !informeActual.carpeta) return;
+  // La carpeta del informe termina en el nombre con el que se guardó.
+  const canal = informeActual.carpeta.split(/[\\/]/).pop();
+  $("estGenerar").disabled = true;
+  $("estTablero").innerHTML = "";
+  $("estEstadoImg").style.display = "block";
+  $("estMsgImg").className = "msg";
+  $("estMsgImg").textContent = "Diseñando la identidad visual…";
+
+  let r;
+  try {
+    r = await fetch("/api/estetica", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ canal, extra: $("estExtra").value }),
+    }).then((x) => x.json());
+  } catch { r = { error: CAIDO }; }
+  if (r.error) {
+    $("estGenerar").disabled = false;
+    $("estMsgImg").className = "msg err";
+    $("estMsgImg").textContent = r.error;
+    return;
+  }
+
+  const sondeo = setInterval(async () => {
+    const e = await estadoDe(r.id);
+    if (!e) return;
+    if (e.estado === "trabajando") {
+      $("estMsgImg").textContent = (e.mensaje || "Generando") + "…";
+      return;
+    }
+    clearInterval(sondeo);
+    $("estGenerar").disabled = false;
+    if (e.estado === "error") {
+      $("estMsgImg").className = "msg err";
+      $("estMsgImg").textContent = e.mensaje;
+      return;
+    }
+    $("estEstadoImg").style.display = "none";
+    $("estTablero").innerHTML =
+      (e.concepto ? `<p class="vol-hint" style="margin:10px 0">${esc(e.concepto)}</p>` : "") +
+      ((e.paleta || []).length
+        ? `<div class="paleta">${e.paleta.map((c) =>
+            `<span><i style="background:${esc(c)}"></i>${esc(c)}</span>`).join("")}</div>`
+        : "") +
+      `<div class="rejilla">` +
+      (e.piezas || []).map((p) => `
+        <div class="tarjeta">
+          <a href="${p.url}" target="_blank" rel="noopener"><img src="${p.url}" alt="${esc(p.titulo)}"></a>
+          <div class="tarjeta-cuerpo">
+            <div class="tarjeta-titulo">${esc(p.titulo)}</div>
+            <div class="tarjeta-canal">${esc(p.tamaño)} · ${esc(p.archivo)}</div>
+          </div>
+        </div>`).join("") +
+      `</div>` +
+      (e.personaje
+        ? `<p class="vol-hint" style="margin-top:12px">Para que este personaje salga en todos tus videos, ` +
+          `pega esta línea al principio del guion:</p>` +
+          `<div class="inf-acciones"><button type="button" data-copiar="estPers">Copiar</button></div>` +
+          `<pre id="estPers">${esc(e.personaje)}</pre>`
+        : "") +
+      `<p class="vol-hint">Guardado en ${esc(e.carpeta)}</p>` +
+      (e.avisos || []).map((a) => `<p class="vol-hint" style="color:var(--danger)">${esc(a)}</p>`).join("");
+  }, 2000);
+});
+
+// ===================== Módulo Publicar =====================
+
+let pubSondeo = null;
+
+async function cargarProyectos() {
+  let r;
+  try { r = await fetch("/api/proyectos").then((x) => x.json()); } catch { return; }
+  ytEstadoCuenta = r.youtube || null;
+  ytPintarAviso();
+  const sel = $("pubProyecto");
+  sel.innerHTML = "";
+  if (!r.proyectos || !r.proyectos.length) {
+    sel.innerHTML = '<option value="">No hay videos generados todavía</option>';
+    return;
+  }
+  r.proyectos.forEach((p) => {
+    const o = document.createElement("option");
+    o.value = p.nombre;
+    // La fecha va delante: es como se busca "el de la semana pasada".
+    const f = new Date(p.fecha * 1000);
+    const cuando = f.toLocaleDateString("es", { day: "2-digit", month: "short" });
+    const dur = p.duracion ? " · " + minSeg(p.duracion) : "";
+    o.textContent = `${cuando} · ${p.nombre}${dur} · ` +
+      (p.sin_texto ? `${p.escenas} clips unidos` : `${p.escenas} escenas`) +
+      `${p.video ? " · con video" : " · solo audio"}` +
+      `${p.publicado ? " ✓ publicado" : ""}`;
+    o.dataset.sinTexto = p.sin_texto ? "1" : "";
+    sel.appendChild(o);
+  });
+  pubAvisarContexto();
+}
+
+/** Los videos de clips unidos no traen guion: el tema lo pone el usuario. */
+function pubAvisarContexto() {
+  const sel = $("pubProyecto");
+  const falta = sel.selectedOptions[0]?.dataset.sinTexto === "1";
+  $("pubContexto").placeholder = falta
+    ? "Obligatorio para este video: se armó uniendo clips y no hay guion. Cuenta en dos o tres frases de qué va."
+    : "Tono, público, a qué otros videos enlazar… Puedes pegar aquí el ADN que sacó la pestaña 1 · Estudio.";
+  $("pubContextoEtiqueta").textContent = falta
+    ? "— obligatorio: este video no tiene guion"
+    : "— opcional";
+  $("pubContextoEtiqueta").style.color = falta ? "var(--accent)" : "";
+}
+$("pubProyecto").addEventListener("change", pubAvisarContexto);
+
+/** Bloque de texto con su botón de copiar: es lo que se pega en YouTube. */
+function bloqueCopiable(titulo, texto, nota) {
+  const id = "cp" + Math.random().toString(36).slice(2, 8);
+  return `<h2>${esc(titulo)}</h2>` +
+    (nota ? `<p class="vol-hint">${esc(nota)}</p>` : "") +
+    `<div class="inf-acciones"><button type="button" data-copiar="${id}">Copiar</button></div>` +
+    `<pre id="${id}">${esc(texto)}</pre>`;
+}
+
+function pubListo(p) {
+  $("pubEstado").style.display = "none";
+  $("publicarBtn").disabled = false;
+  pubActual = p;
+
+  const mini = p.miniatura || {};
+  $("pubTitulos").innerHTML =
+    `<h2>Títulos para probar</h2>` +
+    `<p class="vol-hint">Pruébalos como test A/B: el título y la miniatura son lo que decide el clic.</p>` +
+    (p.titulos || []).map((t) => {
+      const id = "t" + Math.random().toString(36).slice(2, 8);
+      const largo = t.caracteres > 100;
+      return `<div class="rev-fila"><div class="v"><b id="${id}">${esc(t.titulo)}</b>` +
+        `<br><small${largo ? ' style="color:var(--danger)"' : ""}>${t.caracteres} caracteres` +
+        `${largo ? " — YouTube lo corta" : ""} · ${esc(t.tipo || "")} · ${esc(t.por_que || "")}</small></div>` +
+        `<button type="button" class="rev-escuchar" data-copiar="${id}">Copiar</button></div>`;
+    }).join("") +
+    `<p style="margin-top:10px"><b>Recomendado:</b> ${esc(p.titulo_recomendado || "")}</p>`;
+
+  const capitulos = (p.capitulos || []).map((c) => `${c.tiempo} ${c.titulo}`).join("\n");
+  $("pubBloques").innerHTML =
+    bloqueCopiable("Descripción", p.descripcion || "", "Ya lleva los capítulos dentro. Pégala tal cual.") +
+    (capitulos ? bloqueCopiable("Capítulos (solos)", capitulos,
+      "Minutos calculados de tu narración, no estimados.") : "") +
+    bloqueCopiable("Etiquetas", (p.tags || []).join(", "),
+      `${(p.tags || []).length} etiquetas, recortadas al límite de YouTube.`) +
+    bloqueCopiable("Comentario fijado", p.comentario_fijado || "") +
+    `<h2>Miniatura</h2>` +
+    `<div class="rev-fila"><div class="k">Texto</div><div class="v"><b>${esc(mini.texto || "")}</b></div></div>` +
+    `<div class="rev-fila"><div class="k">Imagen</div><div class="v">${esc(mini.idea_visual || "")}</div></div>` +
+    `<div class="rev-fila"><div class="k">Alternativas</div><div class="v">${esc((mini.alternativas || []).join(" · "))}</div></div>` +
+    `<div class="rev-fila"><div class="k">Público</div><div class="v">${esc(p.publico || "")}</div></div>` +
+    (p.aviso ? `<div class="aviso" style="margin-top:14px">${esc(p.aviso)}</div>` : "");
+
+  $("pubCarpeta").textContent = p.carpeta ? "Guardado en " + p.carpeta + "\\publicacion.md" : "";
+  $("pubResultado").style.display = "block";
+  cargarProyectos();   // para que aparezca la marca de "ya tiene publicación"
+}
+
+// Un solo oyente para todos los botones de copiar, presentes y futuros.
+document.addEventListener("click", async (ev) => {
+  const boton = ev.target.closest("[data-copiar]");
+  if (!boton) return;
+  const fuente = document.getElementById(boton.dataset.copiar);
+  if (!fuente) return;
+  const antes = boton.textContent;
+  let ok = false;
+  try {
+    await navigator.clipboard.writeText(fuente.textContent);
+    ok = true;
+  } catch {
+    // Sin permiso de portapapeles (pasa en algunos navegadores y contextos):
+    // se selecciona el texto para que baste con Ctrl+C, en vez de dejar al
+    // usuario con un botón que no hace nada.
+    try {
+      const rango = document.createRange();
+      rango.selectNodeContents(fuente);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(rango);
+      ok = document.execCommand && document.execCommand("copy");
+      if (!ok) boton.textContent = "Seleccionado: pulsa Ctrl+C";
+    } catch { boton.textContent = "No se pudo copiar"; }
+  }
+  if (ok) boton.textContent = "Copiado ✓";
+  setTimeout(() => (boton.textContent = antes), 2200);
+});
+
+$("publicarBtn").addEventListener("click", async () => {
+  const proyecto = $("pubProyecto").value;
+  if (!proyecto) return;
+  $("publicarBtn").disabled = true;
+  $("pubResultado").style.display = "none";
+  $("pubEstado").style.display = "block";
+  $("pubMsg").className = "msg";
+  $("pubMsg").textContent = "Preparando…";
+
+  let r;
+  try {
+    r = await fetch("/api/publicar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ proyecto, contexto: $("pubContexto").value }),
+    }).then((x) => x.json());
+  } catch {
+    $("publicarBtn").disabled = false;
+    $("pubMsg").className = "msg err";
+    $("pubMsg").textContent = CAIDO;
+    return;
+  }
+  if (r.error) {
+    $("publicarBtn").disabled = false;
+    $("pubMsg").className = "msg err";
+    $("pubMsg").textContent = r.error;
+    return;
+  }
+
+  pubSondeo = setInterval(async () => {
+    let e;
+    e = await estadoDe(r.id);
+    if (!e) return;
+    if (e.estado === "trabajando") {
+      $("pubMsg").textContent = (e.mensaje || "Trabajando") + "…";
+      return;
+    }
+    clearInterval(pubSondeo);
+    $("publicarBtn").disabled = false;
+    if (e.estado === "error") {
+      $("pubMsg").className = "msg err";
+      $("pubMsg").textContent = e.mensaje;
+      return;
+    }
+    if (e.estado === "listo") pubListo(e.paquete);
+  }, 1000);
+});
+
+// ===================== Subir a YouTube =====================
+
+let ytEstadoCuenta = null;   // {configurado, autorizado, motivo}
+let ytSondeo = null;
+let pubActual = null;        // el paquete de publicación en pantalla
+
+function ytPintarAviso() {
+  const a = $("ytAviso");
+  if (!ytEstadoCuenta) { a.textContent = ""; return; }
+  if (!ytEstadoCuenta.configurado) {
+    a.innerHTML = "<b>Falta conectar tu canal.</b><br>" + esc(ytEstadoCuenta.motivo).replace(/\n/g, "<br>");
+  } else if (!ytEstadoCuenta.autorizado) {
+    a.innerHTML = "<b>Falta autorizar tu cuenta.</b> Abre una terminal aquí y ejecuta " +
+      "<code>python -m crearvideos youtube-conectar</code> (se abre el navegador una vez).";
+  } else {
+    a.innerHTML = "Cuenta conectada. Se sube el MP4 del proyecto con el título, la descripción " +
+      "y las etiquetas de arriba. <b>Privado</b> te deja revisarlo en YouTube Studio antes de publicar.";
+  }
+}
+
+$("subirBtn").addEventListener("click", () => {
+  if (!pubActual) return;
+  if (ytEstadoCuenta && (!ytEstadoCuenta.configurado || !ytEstadoCuenta.autorizado)) {
+    ytPintarAviso();
+    $("ytAviso").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    return;
+  }
+  const privacidad = $("ytPrivacidad").value;
+  const programar = $("ytProgramar").value;
+  const filas = [
+    { k: "Título", v: esc($("pubProyecto").value && (pubActual.titulo_recomendado || "")) },
+    { k: "Proyecto", v: esc($("pubProyecto").value) },
+    { k: "Privacidad", v: esc(textoOpcion("ytPrivacidad")), alerta: privacidad === "publico" && !programar },
+    { k: "Se publica", v: programar ? esc(programar.replace("T", " ")) : (privacidad === "publico" ? "al terminar la subida" : "cuando tú lo publiques") },
+    { k: "Categoría", v: esc(textoOpcion("ytCategoria")) },
+    { k: "Etiquetas", v: `${(pubActual.tags || []).length}` },
+    { k: "Capítulos", v: `${(pubActual.capitulos || []).length}` },
+  ];
+  if (privacidad === "publico" && !programar) {
+    filas.push({ k: "Atención", v: "Quedará visible para todo el mundo en cuanto termine de subir.", alerta: true });
+  }
+  mostrarRevision("ytRevision", "Revisión antes de subir a YouTube", filas, lanzarSubida, {});
+});
+
+async function lanzarSubida() {
+  $("subirBtn").disabled = true;
+  $("ytEstado").style.display = "block";
+  $("ytMsg").className = "msg";
+  $("ytMsg").textContent = "Preparando la subida…";
+
+  let r;
+  try {
+    r = await fetch("/api/subir", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        proyecto: $("pubProyecto").value,
+        privacidad: $("ytPrivacidad").value,
+        categoria: $("ytCategoria").value,
+        programar: $("ytProgramar").value ? $("ytProgramar").value.replace("T", " ") : "",
+      }),
+    }).then((x) => x.json());
+  } catch {
+    r = { error: CAIDO };
+  }
+  if (r.error) {
+    $("subirBtn").disabled = false;
+    $("ytMsg").className = "msg err";
+    $("ytMsg").textContent = r.error;
+    return;
+  }
+
+  ytSondeo = setInterval(async () => {
+    let e;
+    e = await estadoDe(r.id);
+    if (!e) return;
+    if (e.estado === "trabajando") {
+      $("ytMsg").textContent = (e.mensaje || "Subiendo") + "…";
+      return;
+    }
+    clearInterval(ytSondeo);
+    $("subirBtn").disabled = false;
+    if (e.estado === "error") {
+      $("ytMsg").className = "msg err";
+      $("ytMsg").textContent = e.mensaje;
+      return;
+    }
+    const s = e.subida;
+    $("ytEstado").style.display = "none";
+    $("ytAviso").innerHTML =
+      `<b>Subido.</b> <a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.url)}</a> · ` +
+      `<a href="${esc(s.estudio)}" target="_blank" rel="noopener">abrir en YouTube Studio</a><br>` +
+      `Privacidad: <b>${esc(s.privacidad)}</b>` +
+      (s.programado ? ` · se publica el ${esc(s.programado)}` : "") +
+      (s.aviso ? `<br>${esc(s.aviso)}` : "");
+  }, 2000);
+}
+
+// ===================== Voz clonada: revisar y probar =====================
+//
+// Clonar un guion entero puede tardar una hora larga. Estos tres botones
+// cuestan segundos (o un minuto el último) y evitan descubrir al final que la
+// ruta estaba mal, que el audio era otro, o que el parecido no convence.
+
+async function clonPedir(ruta, boton, endpoint) {
+  const original = boton.innerHTML;
+  boton.disabled = true;
+  boton.textContent = "…";
+  try {
+    const r = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ruta }),
+    }).then((x) => x.json());
+    return r;
+  } catch {
+    return { error: CAIDO };
+  } finally {
+    boton.disabled = false;
+    boton.innerHTML = original;
+  }
+}
+
+/**
+ * Conecta los tres botones de prueba a su campo de muestra. Lo usan Montaje
+ * y Producción; `ids` son el campo, los botones, el reproductor y la nota.
+ */
+function conectarClon(ids) {
+  const nota = (html, alerta) => {
+    $(ids.nota).innerHTML = html;
+    $(ids.nota).style.color = alerta ? "var(--accent)" : "";
+  };
+  const ruta = () => {
+    const v = $(ids.campo).value.trim();
+    if (!v) { $(ids.campo).focus(); return null; }
+    return v;
+  };
+  const sonar = (src) => {
+    const p = $(ids.player);
+    p.src = src;
+    p.style.display = "block";
+    p.play();
+  };
+  let ultimo = null;   // lo último revisado, para el botón de oír
+
+  $(ids.revisar).addEventListener("click", async () => {
+    const r_ = ruta();
+    if (!r_) return;
+    const r = await clonPedir(r_, $(ids.revisar), "/api/revisar-clon");
+    if (r.error) return nota(esc(r.error), true);
+    ultimo = { ...r, consultada: r_ };
+    const min = r.duracion >= 60 ? ` (${(r.duracion / 60).toFixed(1)} min)` : "";
+    nota(
+      `<b>${esc(r.archivo)}</b> · ${r.duracion} s${min} · se usarán los primeros ` +
+      `${r.usara} s` + (r.aviso ? `<br>${esc(r.aviso)}` : ""),
+      Boolean(r.aviso)
+    );
+  });
+
+  $(ids.oir).addEventListener("click", async () => {
+    const r_ = ruta();
+    if (!r_) return;
+    // Si aún no se revisó, se revisa ahora: así el botón funciona a la primera.
+    if (!ultimo || ultimo.consultada !== r_) {
+      const r = await clonPedir(r_, $(ids.oir), "/api/revisar-clon");
+      if (r.error) return nota(esc(r.error), true);
+      ultimo = { ...r, consultada: r_ };
+    }
+    sonar(ultimo.escuchar);
+  });
+
+  $(ids.probar).addEventListener("click", async () => {
+    const r_ = ruta();
+    if (!r_) return;
+    nota("Generando una frase con tu voz… la primera vez tarda ~1 minuto.");
+    const r = await clonPedir(r_, $(ids.probar), "/api/prueba-clon");
+    if (r.error) return nota(esc(r.error), true);
+    sonar(r.url + "?v=" + Date.now());
+    nota("Así sonará la narración. Si no te convence, prueba con otra grabación " +
+         "—voz cercana al micrófono, sin eco ni música— antes de generar el video.");
+  });
+}
+
+conectarClon({ campo: "monVozClon", revisar: "clonRevisar", oir: "clonOir",
+               probar: "clonProbar", player: "clonPlayer", nota: "clonNota" });
+conectarClon({ campo: "proVozClon", revisar: "proClonRevisar", oir: "proClonOir",
+               probar: "proClonProbar", player: "proClonPlayer", nota: "proClonNota" });
+
+/**
+ * Filas de voz para la revisión cuando la voz es tuya (grabada o clonada).
+ * Devuelve null si no hay ninguna, o {error} si pusieron las dos.
+ */
+function filasVozPropia(propia, clon, segundos, accion) {
+  if (propia && clon) {
+    return { error: "Elige una sola cosa: o usas tu narración grabada, o clonas tu voz." };
+  }
+  if (propia) {
+    return [{ k: "Voz", v: `<b>la tuya, grabada</b> · ${esc(propia)}<br><small>no se genera ninguna voz; los subtítulos se reparten sobre tu audio</small>` }];
+  }
+  if (!clon) return null;
+  // Con 18 minutos de narración, clonar son horas. Decirlo ANTES evita que
+  // alguien lance el guion entero creyendo que tarda un par de minutos.
+  const filas = [{
+    k: "Voz",
+    v: `<b>clonada de ti</b> · ${esc(clon)}<br><small>genera la narración imitando esa muestra</small>`,
+    alerta: true,
+  }];
+  if (clonInstalada && !clonInstalada.instalada) {
+    filas.push({
+      k: "Atención",
+      v: `La voz clonada <b>no está instalada</b> en este equipo. Instálala desde la ` +
+         `pestaña 🎙 Voces (≈${clonInstalada.gb} GB) o quita la muestra para usar una voz generada.`,
+      alerta: true,
+    });
+  } else {
+    const tarda = segundos ? clonTiempo(segundos) : "puede tardar bastante";
+    filas.push({ k: "Tardará", v: `<b>${tarda}</b> en clonar toda la narración`, alerta: true });
+  }
+  return filas;
+}
+
+// ===================== Montaje · modo "solo unir clips" =====================
+//
+// Aquí los clips YA traen su voz: no hay guion, ni narración, ni subtítulos.
+// Solo ordenarlos, igualarlos de formato y pegarlos, con o sin transición.
+
+document.querySelectorAll(".modos button").forEach((b) =>
+  b.addEventListener("click", () => {
+    document.querySelectorAll(".modos button").forEach((o) => o.classList.remove("sel"));
+    b.classList.add("sel");
+    const unir = b.dataset.modo === "unir";
+    $("cardUnir").style.display = unir ? "block" : "none";
+    $("cardGuion").style.display = unir ? "none" : "block";
+    $("lema").textContent = unir
+      ? "Une segmentos que ya traen su voz, con transiciones si quieres."
+      : LEMAS.montaje;
+  }));
+
+let uniSondeo = null;
+let uniPrevio = null;
+
+$("uniRevisar").addEventListener("click", async () => {
+  const carpeta = $("uniCarpeta").value.trim();
+  if (!carpeta) { $("uniCarpeta").focus(); return; }
+  $("uniPreview").innerHTML = "<p>Leyendo la carpeta…</p>";
+  let r;
+  try {
+    r = await fetch("/api/segmentos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ carpeta }),
+    }).then((x) => x.json());
+  } catch {
+    $("uniPreview").innerHTML = "<p>" + CAIDO + "</p>";
+    return;
+  }
+  if (r.error) { $("uniPreview").innerHTML = "<p>" + esc(r.error) + "</p>"; return; }
+  uniPrevio = r;
+
+  const filas = r.segmentos.map((s) =>
+    `| ${s.n} | ${s.imagen ? "🖼" : "🎬"} ${esc(s.archivo)} | ${s.duracion}s | ${s.tamaño} | ` +
+    `${s.imagen ? "—" : (s.audio ? "sí" : "**no**")} |`
+  );
+  const avisos = [];
+  if (r.sin_audio) avisos.push(
+    `> ${plural(r.sin_audio, "clip viene mudo", "clips vienen mudos")}: ` +
+    `se ${r.sin_audio === 1 ? "le" : "les"} pone silencio para no descolocar el resto.`);
+  if (r.tamaños.length > 1) avisos.push(`> Vienen en ${r.tamaños.length} tamaños distintos (${r.tamaños.join(", ")}): se igualan al formato elegido, recortando lo que sobre.`);
+  $("uniPreview").innerHTML = markdown(
+    `${r.segmentos.length} segmentos · **${minSeg(r.total)}** en total` +
+    (avisos.length ? "\n" + avisos.join("\n") : "") +
+    `\n\n| # | Archivo | Dura | Tamaño | Audio |\n|---|---|---|---|---|\n${filas.join("\n")}`
+  );
+});
+
+$("unirBtn").addEventListener("click", async () => {
+  const carpeta = $("uniCarpeta").value.trim();
+  if (!carpeta) { $("uniCarpeta").focus(); return; }
+  if (!uniPrevio) { $("uniRevisar").click(); }
+
+  const transicion = $("uniTransicion").value;
+  const t = +$("uniDuracion").value || 0.5;
+  const n = uniPrevio ? uniPrevio.segmentos.length : 0;
+  const recorte = transicion === "ninguna" ? 0 : Math.max(n - 1, 0) * t;
+  const filas = [
+    { k: "Segmentos", v: uniPrevio ? `${n} · ${minSeg(uniPrevio.total)} en total` : "sin revisar" },
+    { k: "Formato", v: esc(textoOpcion("uniFormato")) },
+    { k: "Transición", v: esc(textoOpcion("uniTransicion")) + (transicion !== "ninguna" ? ` · ${t}s` : "") },
+    { k: "Duración final", v: uniPrevio ? `~${minSeg(Math.max(uniPrevio.total - recorte, 0))}` +
+        (recorte ? ` <small>(el cruce recorta ${recorte.toFixed(1)}s)</small>` : "") : "—", alerta: recorte > 0 },
+    { k: "Música", v: esc(textoOpcion("uniMusica")) },
+    { k: "Voz", v: "la de tus clips · no se genera nada" },
+    { k: "Subtítulos", v: "no" },
+  ];
+  mostrarRevision("uniRevision", "Revisión antes de unir", filas, lanzarUnion, {});
+});
+
+async function lanzarUnion() {
+  $("unirBtn").disabled = true;
+  $("uniResultado").style.display = "none";
+  $("uniEstado").style.display = "block";
+  $("uniMsg").className = "msg";
+  $("uniMsg").textContent = "Preparando…";
+
+  let r;
+  try {
+    r = await fetch("/api/unir", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        carpeta: $("uniCarpeta").value.trim(),
+        nombre: $("uniNombre").value,
+        formato: $("uniFormato").value,
+        transicion: $("uniTransicion").value,
+        duracion: +$("uniDuracion").value || 0.5,
+        musica: $("uniMusica").value,
+      }),
+    }).then((x) => x.json());
+  } catch {
+    r = { error: CAIDO };
+  }
+  if (r.error) {
+    $("unirBtn").disabled = false;
+    $("uniMsg").className = "msg err";
+    $("uniMsg").textContent = r.error;
+    return;
+  }
+
+  uniSondeo = setInterval(async () => {
+    let e;
+    e = await estadoDe(r.id);
+    if (!e) return;
+    if (e.estado === "trabajando") {
+      $("uniMsg").textContent = (e.mensaje || "Trabajando") + "…";
+      return;
+    }
+    clearInterval(uniSondeo);
+    $("unirBtn").disabled = false;
+    if (e.estado === "error") {
+      $("uniMsg").className = "msg err";
+      $("uniMsg").textContent = e.mensaje;
+      return;
+    }
+    $("uniEstado").style.display = "none";
+    const fresco = e.video + "?v=" + Date.now();
+    $("uniVideo").src = fresco;
+    $("uniVideo").load();
+    $("uniDescargar").href = fresco;
+    $("uniMeta").innerHTML =
+      `<span>Formato <b>${esc(e.formato)}</b></span>` +
+      `<span>Duración <b>${minSeg(e.duracion)}</b></span>` +
+      `<span>Segmentos <b>${e.segmentos}</b></span>` +
+      (e.transicion !== "ninguna" ? `<span>Transición <b>${esc(e.transicion)}</b> · −${e.recorte}s</span>` : "");
+    $("uniCarpetaOut").textContent = "Guardado en " + e.carpeta;
+    $("uniResultado").style.display = "block";
+  }, 1000);
+}
+
+// ===================== Módulo Montaje =====================
+
+let monSondeo = null;
+
+function monFallo(texto) {
+  clearInterval(monSondeo);
+  $("montarBtn").disabled = false;
+  $("monEstado").style.display = "block";
+  $("monMsg").className = "msg err";
+  $("monMsg").textContent = texto;
+}
+
+// Enseñar qué archivo cae en cada escena ANTES de montar: es donde se ve que
+// faltó un archivo o que el orden no es el que uno creía.
+$("verMedios").addEventListener("click", async () => {
+  const guion = $("monGuion").value.trim();
+  const carpeta = $("monCarpeta").value.trim();
+  if (!guion || !carpeta) { (!guion ? $("monGuion") : $("monCarpeta")).focus(); return; }
+  $("monPreview").innerHTML = "<p>Revisando la carpeta…</p>";
+  let r;
+  try {
+    r = await fetch("/api/medios", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ guion, carpeta }),
+    }).then((x) => x.json());
+  } catch {
+    $("monPreview").innerHTML = "<p>" + CAIDO + "</p>";
+    return;
+  }
+  if (r.error) { $("monPreview").innerHTML = "<p>" + esc(r.error) + "</p>"; return; }
+
+  const filas = r.filas.map((f) =>
+    `| ${f.escena} | ${f.tipo === "video" ? "🎬" : "🖼"} ${esc(f.archivo)} | ${esc(f.texto)} |`
+  );
+  $("monPreview").innerHTML = markdown(
+    `${r.escenas} escenas · ${r.archivos} archivos · emparejado por **${r.metodo}**\n` +
+    (r.avisos || []).map((a) => `\n> ${a}`).join("") +
+    `\n\n| # | Archivo | Narración |\n|---|---|---|\n${filas.join("\n")}`
+  );
+});
+
+$("montarBtn").addEventListener("click", async () => {
+  const guion = $("monGuion").value.trim();
+  const carpeta = $("monCarpeta").value.trim();
+  if (!guion || !carpeta) { (!guion ? $("monGuion") : $("monCarpeta")).focus(); return; }
+
+  // La misma llamada que el botón "Ver emparejamiento": ya trae escenas,
+  // archivos, duración estimada y los avisos de lo que no cuadra.
+  $("montarBtn").disabled = true;
+  let p;
+  try {
+    p = await fetch("/api/medios", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ guion, carpeta }),
+    }).then((x) => x.json());
+  } catch {
+    $("montarBtn").disabled = false;
+    return monFallo(CAIDO);
+  }
+  $("montarBtn").disabled = false;
+  if (p.error) return monFallo(p.error);
+
+  const videos = p.filas.filter((f) => f.tipo === "video").length;
+  const imagenes = p.filas.filter((f) => f.tipo === "imagen").length;
+  const filas = [
+    { k: "Formato", v: esc(textoOpcion("monFormato")) },
+    { k: "Guion", v: `${p.escenas} escenas · ${p.palabras} palabras · <b>~${minSeg(p.duracion_estimada)}</b> estimados` },
+    { k: "Tus medios", v: `${p.archivos} archivos · ${plural(imagenes, "imagen", "imágenes")}, ${plural(videos, "video", "videos")} <small>· emparejados por ${esc(p.metodo)}</small>` },
+  ];
+  // Con voz propia, la voz y el efecto de la app no pintan nada: decirlo aquí
+  // evita que alguien crea que va a sonar la voz que dejó elegida arriba.
+  const clon = $("monVozClon").value.trim();
+  const propias = filasVozPropia($("monVozPropia").value.trim(), clon, p.duracion_estimada);
+  if (propias && propias.error) return monFallo(propias.error);
+  if (propias) {
+    filas.push(...propias);
+    if (clon) filas.push({ k: "Reusar voz", v: $("monReusar").checked ? "sí, si ya clonaste esto mismo antes" : "no, la clona de nuevo" });
+  } else {
+    filas.push(filaVoz(textoOpcion("monVoz"), textoOpcion("monFx")));
+    filas.push({ k: "Reusar voz", v: $("monReusar").checked ? "sí, si ya existe una igual" : "no, la genera de nuevo" });
+  }
+  filas.push(
+    { k: "Música", v: esc(textoOpcion("monMusica")) },
+    { k: "Subtítulos", v: $("monSubs").checked ? "quemados en el video" : "no (máster limpio)" },
+  );
+  if (p.avisos && p.avisos.length) {
+    filas.push({ k: "Atención", v: p.avisos.map(esc).join("<br>"), alerta: true });
+  }
+  mostrarRevision("monRevision", "Revisión antes de montar", filas, lanzarMontaje,
+    { nombre: $("monVoz").value, fx: $("monFx").value });
+});
+
+async function lanzarMontaje() {
+  const guion = $("monGuion").value.trim();
+  const carpeta = $("monCarpeta").value.trim();
+  $("montarBtn").disabled = true;
+  $("monResultado").style.display = "none";
+  $("monEstado").style.display = "block";
+  $("monMsg").className = "msg";
+  $("monMsg").textContent = "Preparando…";
+
+  let r;
+  try {
+    r = await fetch("/api/montar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        guion,
+        carpeta,
+        nombre: $("monNombre").value,
+        formato: $("monFormato").value,
+        voz: $("monVoz").value,
+        voz_fx: $("monFx").value,
+        musica: $("monMusica").value,
+        volumen: vol(),
+        subtitulos: $("monSubs").checked,
+        reusar_voz: $("monReusar").checked,
+        voz_propia: $("monVozPropia").value.trim(),
+        voz_clon: $("monVozClon").value.trim(),
+      }),
+    }).then((x) => x.json());
+  } catch {
+    return monFallo(CAIDO);
+  }
+  if (r.error) return monFallo(r.error);
+
+  monSondeo = setInterval(async () => {
+    let e;
+    e = await estadoDe(r.id);
+    if (!e) return;
+    if (e.estado === "trabajando") {
+      $("monMsg").textContent = (e.mensaje || "Trabajando") + "…";
+      return;
+    }
+    clearInterval(monSondeo);
+    $("montarBtn").disabled = false;
+    if (e.estado === "error") return monFallo(e.mensaje);
+    if (e.estado === "listo") monListo(e);
+  }, 1000);
+}
+
+function monListo(e) {
+  $("monEstado").style.display = "none";
+  const fresco = e.video + "?v=" + Date.now();
+  $("monVideo").src = fresco;
+  $("monVideo").load();
+  $("monDescargar").href = fresco;
+  const min = Math.floor(e.duracion / 60), seg = Math.round(e.duracion % 60);
+  $("monMeta").innerHTML =
+    `<span>Formato <b>${esc(e.formato)}</b></span>` +
+    `<span>Duración <b>${min}:${String(seg).padStart(2, "0")}</b></span>` +
+    `<span>Escenas <b>${e.escenas}</b></span>` +
+    `<span>Voz <b>${esc(e.voz || "")}</b></span>` +
+    (e.avisos || []).map((a) => `<span class="free">${esc(a)}</span>`).join("");
+  $("monCarpetaOut").textContent = "Guardado en " + e.carpeta;
+  $("monResultado").style.display = "block";
+}
+
+// ===================== Módulo Audio =====================
+
+let audSondeo = null;
+
+function audFallo(texto) {
+  clearInterval(audSondeo);
+  $("generarAudio").disabled = false;
+  $("audEstado").style.display = "block";
+  $("audMsg").className = "msg err";
+  $("audMsg").textContent = texto;
+}
+
+$("generarAudio").addEventListener("click", async () => {
+  const guion = $("audGuion").value.trim();
+  if (!guion) { $("audGuion").focus(); return; }
+  $("generarAudio").disabled = true;
+  $("audResultado").style.display = "none";
+  $("audEstado").style.display = "block";
+  $("audMsg").className = "msg";
+  $("audMsg").textContent = "Preparando…";
+
+  let r;
+  try {
+    r = await fetch("/api/audio", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        guion,
+        nombre: $("audNombre").value,
+        voz: $("audVoz").value,
+        voz_fx: $("audFx").value,
+        velocidad: +$("audVel").value || 1,
+      }),
+    }).then((x) => x.json());
+  } catch {
+    return audFallo(CAIDO);
+  }
+  if (r.error) return audFallo(r.error);
+
+  audSondeo = setInterval(async () => {
+    let e;
+    e = await estadoDe(r.id);
+    if (!e) return;
+    if (e.estado === "trabajando") {
+      $("audMsg").textContent = (e.mensaje || "Trabajando") + "…";
+      return;
+    }
+    clearInterval(audSondeo);
+    $("generarAudio").disabled = false;
+    if (e.estado === "error") return audFallo(e.mensaje);
+    if (e.estado === "listo") audListo(e);
+  }, 1000);
+});
+
+function audListo(e) {
+  $("audEstado").style.display = "none";
+  // Cache-busting: el MP3 vive en la misma URL en cada corrida del proyecto.
+  const fresco = e.audio + "?v=" + Date.now();
+  $("audPlayer").src = fresco;
+  $("audPlayer").load();
+  const min = Math.floor(e.duracion / 60), seg = Math.round(e.duracion % 60);
+  $("audMeta").innerHTML =
+    `<span>Duración <b>${min}:${String(seg).padStart(2, "0")}</b></span>` +
+    `<span>Escenas <b>${e.escenas}</b></span>` +
+    `<span>Palabras <b>${e.palabras}</b></span>` +
+    `<span>Voz <b>${esc(e.voz || "")}</b></span>` +
+    `<span class="free"><b>Gratis</b></span>`;
+  $("dlMp3").href = fresco;
+  $("dlEscenas").href = e.escenas_srt;
+  $("dlSubs").href = e.subtitulos_srt;
+  $("dlJson").href = e.datos;
+  $("audCarpeta").textContent = "Guardado en " + e.carpeta;
+  $("audResultado").style.display = "block";
+}
+
+async function abrirInforme(clave) {
+  const inf = await fetch("/api/estudio/informe?clave=" + encodeURIComponent(clave)).then((x) => x.json());
+  if (inf.error) return;
+  // Sin esto, el informe se pinta dentro de la tarjeta oculta y parece que no
+  // ha pasado nada: hay que pasar al modo "Analizar" para que se vea.
+  document.querySelector('[data-modoest="analizar"]')?.click();
+  mostrarInforme(inf);
+}
+
+// #estudio / #audio / #produccion abren ese módulo; #estudio=videos/ID abre
+// además ese informe guardado.
+const hash = decodeURIComponent(location.hash.slice(1));
+const modHash = hash.split("=")[0];
+if (LEMAS[modHash]) {
+  abrirModulo(modHash);
+  if (modHash === "estudio" && hash.includes("=")) abrirInforme(hash.split("=")[1]);
+} else {
+  try {
+    if (localStorage.getItem("modulo") === "estudio") abrirModulo("estudio");
+  } catch {}
+}
+</script>
+</body>
+</html>

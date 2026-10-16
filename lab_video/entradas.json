@@ -1,0 +1,27 @@
+{
+  "proyecto": "proyectos/un-dia-como-presidente",
+  "nota": "Escenas 001 y 003 quedan fuera: traen texto deformado pegado en la imagen y contaminarían la comparación.",
+  "imagenes": [
+    {
+      "id": "p000",
+      "archivo": "proyectos/un-dia-como-presidente/images/escena_000.jpg",
+      "clip_actual": "proyectos/un-dia-como-presidente/clips/clip_000.mp4",
+      "narracion": "Imagina que despiertas siendo el presidente de Estados Unidos por un solo día.",
+      "prompt": "Slow push-in on the president standing at the podium. He lifts his chin, looks straight into the camera and tightens his grip on the sash; the officers behind him shift their weight and glance around, dust drifting through the window light. No dialogue, ambient room tone only."
+    },
+    {
+      "id": "p002",
+      "archivo": "proyectos/un-dia-como-presidente/images/escena_002.jpg",
+      "clip_actual": "proyectos/un-dia-como-presidente/clips/clip_002.mp4",
+      "narracion": "Un militar te sigue a todas partes con un maletín negro: dentro van los códigos para lanzar armas nucleares.",
+      "prompt": "Handheld tracking shot moving backward as the man in uniform strides toward the camera carrying the black briefcase, soldiers marching right behind him, smoke rolling across the street and distant explosions flickering in the background. No dialogue, footsteps and distant rumble only."
+    },
+    {
+      "id": "p004",
+      "archivo": "proyectos/un-dia-como-presidente/images/escena_004.jpg",
+      "clip_actual": "proyectos/un-dia-como-presidente/clips/clip_004.mp4",
+      "narracion": "No puedes conducir, no puedes salir solo, y miles de personas trabajan solo para protegerte.",
+      "prompt": "Slow dolly forward down the crowded alley. The president raises his eyes and takes one step forward; the officer on the right tightens his hold on the briefcase while the bodyguards turn their heads to scan the street, fog drifting under the lamps. No dialogue, low crowd murmur only."
+    }
+  ]
+}
