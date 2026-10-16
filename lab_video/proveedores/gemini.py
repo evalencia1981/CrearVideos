@@ -44,12 +44,45 @@ def _cliente():
         raise ErrorProveedor(
             "Falta la clave de Gemini (GEMINI_API_KEY o LAB_VIDEO_GEMINI_API_KEY en .env)."
         )
-    return genai.Client(api_key=clave, http_options=types.HttpOptions(timeout=HTTP_S * 1000))
+    # Un solo intento: el cliente de Interactions reintenta los 429 por su
+    # cuenta y en silencio, y con el proyecto en nivel gratuito eso parecía un
+    # cuelgue (28 minutos sin salir de una llamada). Los reintentos que tengan
+    # sentido los decide el laboratorio, a la vista.
+    return genai.Client(
+        api_key=clave,
+        http_options=types.HttpOptions(
+            timeout=HTTP_S * 1000, retry_options=types.HttpRetryOptions(attempts=1)
+        ),
+    )
+
+
+def _codigo(e: Exception) -> int | None:
+    """Código HTTP de un error, venga del cliente de Veo o del de Interactions."""
+    for attr in ("code", "status_code"):
+        valor = getattr(e, attr, None)
+        if isinstance(valor, int):
+            return valor
+    return None
+
+
+def _es_tier_gratis(e: Exception) -> bool:
+    texto = str(getattr(e, "message", None) or e)
+    return _codigo(e) == 429 and ("Free Tier" in texto or "limit: 0" in texto)
+
+
+TIER_GRATIS = (
+    "el proyecto de la clave está en el nivel GRATUITO de la API de Gemini, donde Veo y "
+    "Omni tienen cuota 0 (Google responde 429 'limit: 0 … on Free Tier'). Activa la "
+    "facturación del proyecto en https://aistudio.google.com/apikey (Plan de pago), o pon "
+    "en LAB_VIDEO_GEMINI_API_KEY la clave de un proyecto que ya la tenga. No se cobró nada."
+)
 
 
 def _motivo(e: Exception) -> str:
     """Mensaje corto de un error de la API, sin cabeceras ni la clave."""
-    codigo = getattr(e, "code", None)
+    if _es_tier_gratis(e):
+        return TIER_GRATIS
+    codigo = _codigo(e)
     texto = getattr(e, "message", None) or str(e)
     texto = " ".join(str(texto).split())[:400]
     return f"[{codigo}] {texto}" if codigo else texto
@@ -118,6 +151,51 @@ class GeminiVeo(VideoProvider):
         )
 
 
+class _ErrorHTTP(Exception):
+    """Error de la API REST con su código, para que _codigo/_motivo lo lean."""
+
+    def __init__(self, code: int, message: str):
+        super().__init__(message)
+        self.code, self.message = code, message
+
+
+#: API REST de Interactions. Se llama directamente con httpx en vez del
+#: cliente del SDK: en google-genai 2.31 ese cliente se quedaba colgado
+#: (reintentos internos que no respetan ni timeout ni retry_options), mientras
+#: la misma llamada en crudo responde en menos de un segundo.
+INTERACTIONS_URL = "https://generativelanguage.googleapis.com/v1beta/interactions"
+
+
+def _rest(metodo: str, url: str, **kwargs) -> dict:
+    import httpx
+
+    clave = config.clave_api()
+    if not clave:
+        raise ErrorProveedor(
+            "Falta la clave de Gemini (GEMINI_API_KEY o LAB_VIDEO_GEMINI_API_KEY en .env)."
+        )
+    try:
+        r = httpx.request(metodo, url, headers={"x-goog-api-key": clave},
+                          timeout=httpx.Timeout(HTTP_S, connect=20), **kwargs)
+    except httpx.HTTPError as e:
+        raise ErrorProveedor(f"sin conexión con la API: {type(e).__name__}") from e
+    if r.status_code >= 400:
+        try:
+            mensaje = (r.json().get("error") or {}).get("message") or r.text
+        except ValueError:
+            mensaje = r.text
+        raise _ErrorHTTP(r.status_code, " ".join(str(mensaje).split())[:400])
+    return r.json()
+
+
+def _campo(d: dict, *nombres, defecto=None):
+    """Lee un campo aceptando snake_case o camelCase."""
+    for n in nombres:
+        if n in d:
+            return d[n]
+    return defecto
+
+
 class GeminiOmni(VideoProvider):
     nombre = "gemini-omni"
 
@@ -130,23 +208,8 @@ class GeminiOmni(VideoProvider):
         if resolucion not in ("360p", "720p", "1080p", "4k"):
             raise ErrorProveedor(f"omni-flash no admite {resolucion}")
 
-    def _crear(self, cliente, entrada, aspecto, resolucion, duracion_api):
-        formato = {"type": "video", "aspect_ratio": aspecto, "resolution": resolucion,
-                   "delivery": "uri"}
-        if duracion_api:
-            formato["duration"] = duracion_api
-        return cliente.interactions.create(
-            model=self.modelo.id,
-            input=entrada,
-            response_format=formato,
-            generation_config={"video_config": {"task": "image_to_video"}},
-            background=True,
-            timeout=HTTP_S,
-        )
-
     def generar(self, imagen, prompt, duracion, aspecto, resolucion, destino) -> Generacion:
         self.validar(duracion, resolucion)
-        cliente = _cliente()
         mime = mimetypes.guess_type(str(imagen))[0] or "image/jpeg"
         entrada = [
             {"type": "image", "data": base64.b64encode(Path(imagen).read_bytes()).decode(),
@@ -156,95 +219,121 @@ class GeminiOmni(VideoProvider):
             {"type": "text", "text": f"Use this image as the first frame. {duracion}-second clip. {prompt}"},
         ]
 
-        # El formato del campo `duration` no está documentado. Se prueba "4s",
-        # luego "4", y si no, sin el campo. Un 400 no genera nada ni se cobra.
-        interaccion, avisos = None, []
+        # El formato de `duration` no está documentado; "4s" fue aceptado en
+        # la primera prueba. Si no, "4" y luego sin el campo. Un 400 no
+        # genera nada ni se cobra.
+        datos, avisos = None, []
         for duracion_api in (f"{duracion}s", str(duracion), None):
+            formato = {"type": "video", "aspect_ratio": aspecto, "resolution": resolucion}
+            if duracion_api:
+                formato["duration"] = duracion_api
             _log(self.modelo.clave, f"enviando {Path(imagen).name} (duration={duracion_api!r})")
             try:
-                interaccion = self._crear(cliente, entrada, aspecto, resolucion, duracion_api)
+                datos = _rest("POST", INTERACTIONS_URL, json={
+                    "model": self.modelo.id,
+                    "input": entrada,
+                    "response_format": formato,
+                    "generation_config": {"video_config": {"task": "image_to_video"}},
+                    "background": True,
+                })
                 break
-            except Exception as e:  # noqa: BLE001
-                if getattr(e, "code", None) == 400 or "400" in str(getattr(e, "status_code", "")):
-                    avisos.append(f"duration={duracion_api!r} rechazado: {_motivo(e)}")
+            except _ErrorHTTP as e:
+                if e.code == 400:
+                    avisos.append(f"duration={duracion_api!r} rechazado: {e.message}")
                     continue
                 raise ErrorProveedor(_motivo(e)) from e
-        if interaccion is None:
+        if datos is None:
             raise ErrorProveedor("la API rechazó la petición: " + " | ".join(avisos))
 
-        _anotar_envio(destino, self.modelo.clave, interaccion.id)
-        _log(self.modelo.clave, f"aceptado ({interaccion.id}, {interaccion.status}); esperando")
-        try:
-            inicio = time.monotonic()
-            while interaccion.status not in ("completed", "failed", "cancelled"):
-                if time.monotonic() - inicio > TIEMPO_MAX_S:
-                    raise ErrorProveedor(f"sin respuesta tras {TIEMPO_MAX_S // 60} min ({interaccion.id})")
-                time.sleep(SONDEO_S)
-                interaccion = cliente.interactions.get(interaccion.id, timeout=HTTP_S)
-            _log(self.modelo.clave, f"{interaccion.status} en {time.monotonic() - inicio:.0f}s")
-        except ErrorProveedor:
-            raise
-        except Exception as e:  # noqa: BLE001
-            raise ErrorProveedor(_motivo(e)) from e
+        ident = datos.get("id", "")
+        _anotar_envio(destino, self.modelo.clave, ident)
+        _log(self.modelo.clave, f"aceptado ({ident}, {datos.get('status')}); esperando")
+        inicio = time.monotonic()
+        while datos.get("status") not in ("completed", "failed", "cancelled"):
+            if time.monotonic() - inicio > TIEMPO_MAX_S:
+                raise ErrorProveedor(f"sin respuesta tras {TIEMPO_MAX_S // 60} min ({ident})")
+            time.sleep(SONDEO_S)
+            try:
+                datos = _rest("GET", f"{INTERACTIONS_URL}/{ident}")
+            except _ErrorHTTP as e:
+                # Un 429 pasajero al consultar no es un fallo: se vuelve a
+                # mirar en el siguiente sondeo. El de nivel gratuito sí lo es.
+                if e.code == 429 and not _es_tier_gratis(e):
+                    _log(self.modelo.clave, "429 al consultar; reintento en el siguiente sondeo")
+                    continue
+                raise ErrorProveedor(_motivo(e)) from e
+        estado = datos.get("status")
+        _log(self.modelo.clave, f"{estado} en {time.monotonic() - inicio:.0f}s")
 
-        if interaccion.status != "completed":
-            errores = "; ".join(str(x) for x in (interaccion.errors or [])) or interaccion.status
-            raise ErrorProveedor(f"la interacción terminó en {interaccion.status}: {errores}")
+        if estado != "completed":
+            errores = "; ".join(str(x) for x in (datos.get("errors") or [])) or estado
+            raise ErrorProveedor(f"la interacción terminó en {estado}: {errores}")
 
-        video = interaccion.output_video
+        video = self._video(datos)
         if video is None:
             raise ErrorProveedor("la API no devolvió ningún video (¿filtro de seguridad?)")
-        if video.data:
-            destino.write_bytes(base64.b64decode(video.data))
-        elif video.uri:
-            self._descargar_uri(cliente, video.uri, destino)
+        if video.get("data"):
+            destino.write_bytes(base64.b64decode(video["data"]))
+        elif video.get("uri"):
+            self._descargar(video["uri"], destino)
         else:
             raise ErrorProveedor("el video no trae datos ni URI")
 
-        costo, tokens = self._costo(interaccion.usage)
+        costo, tokens = self._costo(datos.get("usage") or {})
         return Generacion(
             mp4=destino,
             costo_real_usd=costo,
             costo_real_fuente="tokens informados por la API × precio publicado" if costo is not None
             else "la API no devolvió uso de tokens",
-            extra={"interaccion": interaccion.id, "tokens": tokens,
+            extra={"interaccion": ident, "tokens": tokens,
                    **({"avisos_duracion": avisos} if avisos else {})},
         )
 
     @staticmethod
-    def _descargar_uri(cliente, uri: str, destino: Path) -> None:
-        nombre = uri.split("files/")[-1].split(":")[0].split("?")[0]
-        inicio = time.monotonic()
-        while True:
-            archivo = cliente.files.get(name=f"files/{nombre}")
-            estado = getattr(archivo.state, "name", str(archivo.state))
-            if estado == "ACTIVE":
+    def _video(datos: dict) -> dict | None:
+        """El último bloque de video de la salida del modelo (como hace el SDK)."""
+        for paso in reversed(datos.get("steps") or []):
+            if paso.get("type") == "user_input":
                 break
-            if estado == "FAILED":
-                raise ErrorProveedor("el archivo del video falló al procesarse")
-            if time.monotonic() - inicio > 300:
-                raise ErrorProveedor("el archivo del video no quedó listo en 5 min")
-            time.sleep(3)
-        datos = cliente.files.download(file=uri)
-        if datos:
-            destino.write_bytes(datos)
-        else:
-            cliente.files.download(file=uri, destination=str(destino))
+            if paso.get("type") != "model_output":
+                continue
+            for item in reversed(paso.get("content") or []):
+                if item.get("type") == "video":
+                    return item
+        salida = _campo(datos, "output_video", "outputVideo")
+        return salida if isinstance(salida, dict) else None
 
     @staticmethod
-    def _costo(uso) -> tuple[float | None, dict]:
-        if uso is None:
-            return None, {}
-        entrada = uso.total_input_tokens or 0
-        salida = {}
-        for m in uso.output_tokens_by_modality or []:
-            salida[str(m.modality)] = salida.get(str(m.modality), 0) + (m.tokens or 0)
-        if not salida and uso.total_output_tokens:
-            salida = {"video": uso.total_output_tokens}
+    def _descargar(uri: str, destino: Path) -> None:
+        import httpx
+
+        try:
+            with httpx.stream("GET", uri, params={"alt": "media"},
+                              headers={"x-goog-api-key": config.clave_api() or ""},
+                              timeout=httpx.Timeout(HTTP_S, connect=20),
+                              follow_redirects=True) as r:
+                if r.status_code >= 400:
+                    raise ErrorProveedor(f"no se pudo descargar el video [{r.status_code}]")
+                with destino.open("wb") as f:
+                    for trozo in r.iter_bytes():
+                        f.write(trozo)
+        except httpx.HTTPError as e:
+            raise ErrorProveedor(f"fallo al descargar el video: {type(e).__name__}") from e
+
+    @staticmethod
+    def _costo(uso: dict) -> tuple[float | None, dict]:
+        entrada = _campo(uso, "total_input_tokens", "totalInputTokens", defecto=0) or 0
+        salida: dict[str, int] = {}
+        for m in _campo(uso, "output_tokens_by_modality", "outputTokensByModality", defecto=[]) or []:
+            modalidad = str(m.get("modality", "video")).lower()
+            salida[modalidad] = salida.get(modalidad, 0) + int(m.get("tokens") or 0)
+        total_salida = _campo(uso, "total_output_tokens", "totalOutputTokens")
+        if not salida and total_salida:
+            salida = {"video": int(total_salida)}
         if not entrada and not salida:
             return None, {}
         usd = entrada * config.OMNI_USD_M_ENTRADA / 1e6
         for modalidad, n in salida.items():
             usd += n * config.OMNI_USD_M_SALIDA.get(modalidad, config.OMNI_USD_M_SALIDA_OTRA) / 1e6
         return round(usd, 4), {"entrada": entrada, "salida": salida,
-                               "total": uso.total_tokens}
+                               "total": _campo(uso, "total_tokens", "totalTokens")}
