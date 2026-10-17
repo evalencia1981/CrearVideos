@@ -12,7 +12,6 @@ from pathlib import Path
 
 from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter
 
-from ...config import PLACEHOLDER_HEIGHT, PLACEHOLDER_WIDTH
 from .base import ImageProvider
 
 # Paletas (arriba, abajo, acento). Se elige por hash del prompt, así que la
@@ -114,7 +113,7 @@ class PlaceholderImages(ImageProvider):
         self, prompt: str, out_path: Path, *, index: int = 0, subject: str = ""
     ) -> Path:
         (top, bottom, accent), digest = _pick(prompt, index)
-        size = (PLACEHOLDER_WIDTH, PLACEHOLDER_HEIGHT)
+        size = self.destino
 
         img = _gradient(size, top, bottom)
         img = _glow(img, digest, accent)

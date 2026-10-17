@@ -10,6 +10,30 @@ class ImageProvider(ABC):
     name: str = "base"
     #: Costo aproximado por imagen en USD, para el resumen de gasto.
     cost_per_image: float = 0.0
+    #: Formato del video (vertical | horizontal | cuadrado). Lo fija el
+    #: registro desde los ajustes; cada proveedor pide su imagen en esa
+    #: proporción en vez de recortar después un 9:16.
+    formato: str = "vertical"
+
+    @property
+    def salida(self) -> tuple[int, int]:
+        """Tamaño del video en este formato."""
+        from ...config import formato
+
+        return formato(self.formato)
+
+    @property
+    def destino(self) -> tuple[int, int]:
+        """Tamaño al que se guarda la imagen: el del video con margen (4/3)
+        para que el zoom de Ken Burns no pierda nitidez."""
+        w, h = self.salida
+        return w * 4 // 3, h * 4 // 3
+
+    @property
+    def relacion(self) -> str:
+        """La proporción como la piden las APIs: "9:16", "16:9" o "1:1"."""
+        w, h = self.salida
+        return "9:16" if h > w else ("16:9" if w > h else "1:1")
 
     @property
     def fingerprint_extra(self) -> str:
@@ -25,7 +49,7 @@ class ImageProvider(ABC):
     def generate(
         self, prompt: str, out_path: Path, *, index: int = 0, subject: str = ""
     ) -> Path:
-        """Genera una imagen vertical en `out_path` y devuelve su ruta.
+        """Genera una imagen en la proporción de `formato` y devuelve su ruta.
 
         `prompt` trae el estilo global concatenado; `subject` es solo la
         descripción de esta escena. Los generadores de IA usan el primero,

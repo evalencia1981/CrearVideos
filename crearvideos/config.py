@@ -165,6 +165,7 @@ class Settings:
     reference_images: list[str] = None   # imágenes base para fijar el personaje (img2img)
     pollinations_free: bool = False       # ignora el token: modelo 'sana' gratis, para probar sin gastar pollen
     voice_fx: str = "auto"           # efecto sobre la voz: auto|none|terror|… (ver voicefx.py)
+    formato: str = "vertical"        # vertical | horizontal | cuadrado (ver FORMATOS)
     scene_gap: float = 0.18          # respiro entre escenas, en segundos
 
     def __post_init__(self):

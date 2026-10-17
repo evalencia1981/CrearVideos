@@ -28,12 +28,12 @@ from pathlib import Path
 
 from PIL import Image, ImageOps
 
-from ...config import PLACEHOLDER_HEIGHT, PLACEHOLDER_WIDTH, api_key
+from ...config import api_key
 from .base import ImageProvider
 
-# Se pide en 9:16 nativo. El modelo suele devolver algo más pequeño pero con la
-# misma proporción; el `fit` de abajo lo lleva al tamaño exacto del montaje.
-REQUEST_W, REQUEST_H = 1080, 1920
+# Se pide en la proporción nativa del video (ImageProvider.salida). El modelo
+# suele devolver algo más pequeño pero con la misma proporción; el `fit` de
+# _guardar lo lleva al tamaño exacto del montaje.
 
 # Dos endpoints, dos mundos:
 # - LEGACY: uso anónimo, sin token. Ignora el modelo y sirve SIEMPRE 'sana'
@@ -186,9 +186,9 @@ class PollinationsImages(ImageProvider):
         # La semilla fija (el índice) hace que repetir el montaje dé la misma
         # imagen: el video es reproducible y no se regenera al reintentar.
         model = model or self.model
-        # El pipeline pide siempre 9:16; la estética del canal necesita otros
-        # formatos (16:9 para miniaturas, 1:1 para el avatar).
-        ancho, alto = tamaño or (REQUEST_W, REQUEST_H)
+        # Por defecto, el formato del video (9:16, 16:9 o 1:1); la estética del
+        # canal pide sus propios tamaños (miniatura, avatar).
+        ancho, alto = tamaño or self.salida
         if self.token:
             # Gateway: el token va en la cabecera (ver _fetch); aquí el modelo
             # es obligatorio y no lleva 'nologo' (el gateway no marca de agua).
@@ -259,6 +259,12 @@ class PollinationsImages(ImageProvider):
             f"momento y reintenta, o usa --imagenes pexels / placeholder."
         )
 
+    def _tamaño_edicion(self, modelo: str) -> str:
+        if modelo == EDIT_MODEL:
+            return {"9:16": "1024x1536", "16:9": "1536x1024"}.get(self.relacion, "1024x1024")
+        w, h = self.salida
+        return f"{w}x{h}"
+
     def _edit(self, prompt: str) -> bytes:
         """Genera una escena a partir de las imágenes de referencia (img2img).
 
@@ -279,10 +285,10 @@ class PollinationsImages(ImageProvider):
         campos = {
             "prompt": prompt,
             "model": modelo,
-            # kontext solo traga 2:3 (pedirle 1080x1920 da 400); los modelos que
-            # aceptan varias referencias sí dan el 9:16 casi exacto, así que se
-            # les pide y se ahorra un recorte.
-            "size": "1024x1536" if modelo == EDIT_MODEL else "1080x1920",
+            # kontext solo traga 2:3 / 3:2 / 1:1 (pedirle 1080x1920 da 400); los
+            # modelos que aceptan varias referencias sí dan la proporción del
+            # video casi exacta, así que se les pide y se ahorra un recorte.
+            "size": self._tamaño_edicion(modelo),
             "n": "1",
         }
         cuerpo = bytearray()
@@ -387,7 +393,7 @@ class PollinationsImages(ImageProvider):
         return out_path
 
     def _guardar(self, raw: bytes, out_path: Path) -> None:
-        """Recorta al 9:16 del montaje y guarda como JPEG, sin inventar píxeles.
+        """Recorta a la proporción del video y guarda como JPEG, sin inventar píxeles.
 
         Antes se ampliaba siempre a 1440x2560. Con el camino gratis, que
         devuelve 576x1024, eso era un upscale de 2.5x hecho aquí y otro
@@ -399,9 +405,9 @@ class PollinationsImages(ImageProvider):
         out_path.parent.mkdir(parents=True, exist_ok=True)
         with Image.open(io.BytesIO(raw)) as img:
             img = ImageOps.exif_transpose(img).convert("RGB")
-            destino = (PLACEHOLDER_WIDTH, PLACEHOLDER_HEIGHT)
+            destino = self.destino
             if img.width < destino[0] or img.height < destino[1]:
-                # Mismo 9:16, a la mayor resolución que la imagen da de sí.
+                # Misma proporción, a la mayor resolución que la imagen da de sí.
                 alto = min(img.height, img.width * destino[1] // destino[0])
                 destino = (alto * destino[0] // destino[1], alto)
             img = ImageOps.fit(img, destino, Image.LANCZOS)

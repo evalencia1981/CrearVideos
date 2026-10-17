@@ -22,7 +22,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, quote, unquote, urlparse
 
 from .. import compose, music, styles, voicefx
-from ..config import OUTPUT_DIR, load_settings
+from ..config import FORMATOS, OUTPUT_DIR, load_settings
 from ..ffmpeg import FFmpegError
 from ..pipeline import create
 
@@ -84,6 +84,7 @@ def _run_job(
     gratis: bool,
     voz_propia: str = "",
     voz_clon: str = "",
+    formato: str = "vertical",
 ) -> None:
     from ..clonvoz import ClonError
     from ..vozpropia import VozPropiaError
@@ -140,6 +141,7 @@ def _run_job(
             references=referencias,
             voz_propia=Path(voz_propia) if voz_propia.strip() else None,
             voz_clon=Path(voz_clon) if voz_clon.strip() else None,
+            formato=formato,
             on_progress=progress,
         )
         with _lock:
@@ -921,6 +923,7 @@ def _start_job(
     gratis: bool,
     voz_propia: str = "",
     voz_clon: str = "",
+    formato: str = "vertical",
 ) -> str:
     global _counter
     with _lock:
@@ -932,7 +935,7 @@ def _start_job(
         target=_run_job,
         args=(job_id, guion, name, voz, imagenes, modelo, estilo, director,
               musica, volumen, voz_fx, portada_data, referencias_data,
-              usar_referencia, gratis, voz_propia, voz_clon),
+              usar_referencia, gratis, voz_propia, voz_clon, formato),
         daemon=True,
     ).start()
     return job_id
@@ -1644,6 +1647,8 @@ class Handler(BaseHTTPRequestHandler):
             datos.get("gratis", False) is True,
             datos.get("voz_propia", ""),
             datos.get("voz_clon", ""),
+            # Un formato desconocido cae al vertical en vez de romper el trabajo.
+            datos.get("formato") if datos.get("formato") in FORMATOS else "vertical",
         )
         self._json({"id": job_id})
 

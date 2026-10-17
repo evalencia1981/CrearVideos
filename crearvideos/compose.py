@@ -1,4 +1,4 @@
-"""Montaje final con ffmpeg: imágenes fijas -> video vertical con voz y subtítulos.
+"""Montaje final con ffmpeg: imágenes fijas -> video con voz y subtítulos.
 
 Se hace en tres pasos en vez de un solo filter_complex gigante. Es
 ligeramente más lento, pero cada paso deja su archivo en disco, así que
@@ -259,11 +259,16 @@ def finalize(
     return project.output_path
 
 
+def _wxh(size: tuple[int, int] | None) -> str:
+    w, h = size or (WIDTH, HEIGHT)
+    return f"{w}:{h}"
+
+
 def _fit_vertical(scale_to: str) -> str:
-    """Filtro para llenar el encuadre 9:16 recortando el sobrante.
+    """Filtro para llenar el encuadre (9:16, 16:9 o 1:1) recortando el sobrante.
 
     Es el mismo encaje que usan las escenas: la imagen puede venir en cualquier
-    proporción (horizontal, cuadrada), se agranda hasta cubrir 1080x1920 y se
+    proporción, se agranda hasta cubrir el tamaño del video y se
     recorta lo que sobre. Nunca deja franjas negras.
     """
     return (
@@ -272,8 +277,8 @@ def _fit_vertical(scale_to: str) -> str:
     )
 
 
-def normalize_cover(src: Path, dst: Path) -> Path:
-    """Deja una imagen cualquiera como portada 1080x1920 lista para subir.
+def normalize_cover(src: Path, dst: Path, *, size: tuple[int, int] | None = None) -> Path:
+    """Deja una imagen cualquiera como portada del tamaño del video, lista para subir.
 
     Sirve como miniatura de YouTube (se sube aparte) y como base del fotograma
     de portada que se antepone al video.
@@ -281,7 +286,7 @@ def normalize_cover(src: Path, dst: Path) -> Path:
     ffmpeg.run(
         [
             "-i", str(src.resolve()),
-            "-vf", f"{_fit_vertical(f'{WIDTH}:{HEIGHT}')},format=yuv420p",
+            "-vf", f"{_fit_vertical(_wxh(size))},format=yuv420p",
             "-frames:v", "1",
             "-q:v", "2",
             str(dst.resolve()),
@@ -291,10 +296,11 @@ def normalize_cover(src: Path, dst: Path) -> Path:
 
 
 def add_cover(video_in: Path, cover: Path, video_out: Path, *,
-              seconds: float = 2.0, fade: float = 0.35) -> Path:
+              seconds: float = 2.0, fade: float = 0.35,
+              size: tuple[int, int] | None = None) -> Path:
     """Antepone una portada al video: unos segundos fijos y luego el contenido.
 
-    La imagen se encaja a 1080x1920 y se sostiene `seconds` como fotograma de
+    La imagen se encaja al tamaño del video y se sostiene `seconds` como fotograma de
     apertura, con una entrada suave. Así queda como primer fotograma del video,
     que es lo que TikTok ofrece para elegir portada, sin descuadrar nada: los
     subtítulos ya están quemados en el contenido, que solo se desplaza `seconds`
@@ -303,7 +309,7 @@ def add_cover(video_in: Path, cover: Path, video_out: Path, *,
     Se reencoda una vez (como el cambio de velocidad); solo cuando hay portada.
     """
     filtro = (
-        f"[1:v]{_fit_vertical(f'{WIDTH}:{HEIGHT}')},fps={FPS},format=yuv420p,"
+        f"[1:v]{_fit_vertical(_wxh(size))},fps={FPS},format=yuv420p,"
         f"fade=t=in:st=0:d={fade}[cov];"
         f"anullsrc=channel_layout=stereo:sample_rate=44100,atrim=0:{seconds:.3f}[sil];"
         f"[cov][0:v]concat=n=2:v=1:a=0[v];"
@@ -391,7 +397,7 @@ def retime(src: Path, dst: Path, speed: float) -> Path:
 
 
 def build_video(project: Project, settings: Settings, *, music: Path | None = None,
-                on_progress=None) -> Path:
+                size: tuple[int, int] | None = None, on_progress=None) -> Path:
     """Pasos 1 a 3 del montaje. `on_progress(mensaje)` para reportar avance."""
 
     def report(msg: str) -> None:
@@ -402,7 +408,7 @@ def build_video(project: Project, settings: Settings, *, music: Path | None = No
     for scene in project.scenes:
         clip = project.clip_dir / f"clip_{scene.index:03d}.mp4"
         report(f"Montando escena {scene.index + 1}/{len(project.scenes)} ({scene.duration:.1f}s)")
-        render_clip(scene, clip)
+        render_clip(scene, clip, size=size)
         clips.append(clip)
 
     report("Uniendo clips")

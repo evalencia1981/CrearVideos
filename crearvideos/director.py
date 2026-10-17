@@ -49,7 +49,7 @@ DEFAULT_STYLE = "cinematic film still, dramatic lighting, natural colors, 35mm"
 GENERATIVE = ("pollinations", "gemini", "openai")
 
 SYSTEM = (
-    "You are a visual art director for faceless vertical short videos (9:16). "
+    "You are a visual art director for faceless {encuadre}. "
     "You receive a video's narration split into ordered scenes, a visual style, "
     "and optionally a brief from the author. Your job has two parts.\n\n"
     "WRITE EVERYTHING IN ENGLISH, even when the narration and the brief are in "
@@ -92,7 +92,18 @@ class QuotaExhausted(RuntimeError):
 #: Cola que se pega a TODOS los prompts. Va en código, no en el prompt de la
 #: IA, porque pedirle "no pongas texto" escena por escena falla una de cada
 #: tantas; concatenarlo aquí no falla nunca.
-TAIL = "vertical 9:16 composition, no text, no letters, no captions, no logo, no watermark"
+TAIL = "{composicion} composition, no text, no letters, no captions, no logo, no watermark"
+
+#: Formato del video -> (cómo se describe al director, cómo va en la cola).
+ENCUADRES = {
+    "vertical": ("vertical short videos (9:16)", "vertical 9:16"),
+    "horizontal": ("horizontal YouTube videos (16:9 widescreen)", "horizontal 16:9 widescreen"),
+    "cuadrado": ("square videos (1:1)", "square 1:1"),
+}
+
+
+def _encuadre(formato: str | None) -> tuple[str, str]:
+    return ENCUADRES.get((formato or "vertical").lower(), ENCUADRES["vertical"])
 
 
 def _hash(subjects: list[str], style: str | None, brief: str = "") -> str:
@@ -176,7 +187,8 @@ def _anchor(bible: dict) -> str:
     return anchor
 
 
-def _compose(bible: dict, cast: list[dict], escenas: list[dict], total: int) -> list[str]:
+def _compose(bible: dict, cast: list[dict], escenas: list[dict], total: int,
+             formato: str = "vertical") -> list[str]:
     """Une acción de escena + descripción literal del reparto + ancla + cola."""
     looks = {
         str(c.get("id", "")).strip(): _clip(str(c.get("look", "")).strip(), MAX_CAST_WORDS)
@@ -202,12 +214,13 @@ def _compose(bible: dict, cast: list[dict], escenas: list[dict], total: int) -> 
             trozos.append("Consistent characters: " + "; ".join(presentes))
         if anchor:
             trozos.append(anchor)
-        trozos.append(TAIL)
+        trozos.append(TAIL.format(composicion=_encuadre(formato)[1]))
         prompts.append(". ".join(t.rstrip(". ") for t in trozos) + ".")
     return prompts
 
 
-def _call(subjects: list[str], style: str | None, brief: str = "") -> list[str]:
+def _call(subjects: list[str], style: str | None, brief: str = "",
+          formato: str = "vertical") -> list[str]:
     user = ""
     if brief.strip():
         # El brief del autor manda sobre lo que la IA deduzca por su cuenta.
@@ -221,7 +234,8 @@ def _call(subjects: list[str], style: str | None, brief: str = "") -> list[str]:
             "reasoning_effort": "low",
             "max_tokens": min(16000, 4000 + 900 * len(subjects)),
             "messages": [
-                {"role": "system", "content": SYSTEM.format(style=style or DEFAULT_STYLE)},
+                {"role": "system", "content": SYSTEM.format(
+                    style=style or DEFAULT_STYLE, encuadre=_encuadre(formato)[0])},
                 {"role": "user", "content": user},
             ],
         }
@@ -255,11 +269,13 @@ def _call(subjects: list[str], style: str | None, brief: str = "") -> list[str]:
         data.get("cast") or [],
         data["scenes"],
         len(subjects),
+        formato,
     )
 
 
 def enrich(
-    scenes, style: str | None, cache_path: Path, on_progress=None, brief: str = ""
+    scenes, style: str | None, cache_path: Path, on_progress=None, brief: str = "",
+    formato: str = "vertical",
 ) -> bool:
     """Rellena scene.image_prompt con un prompt dirigido y coherente.
 
@@ -269,7 +285,10 @@ def enrich(
     Devuelve True si se aplicó el director, False si se usó el prompt simple.
     """
     subjects = [(s.image_subject or s.text) for s in scenes]
-    clave = _hash(subjects, style, brief)
+    # El vertical no entra en la huella: así los proyectos que ya existían
+    # conservan sus prompts. Otro formato sí cambia los prompts (y la caché).
+    vertical = (formato or "vertical").lower() == "vertical"
+    clave = _hash(subjects, style, brief + ("" if vertical else f"|{formato}"))
 
     try:
         cache = json.loads(cache_path.read_text(encoding="utf-8")) if cache_path.exists() else {}
@@ -288,7 +307,7 @@ def enrich(
     # error de la versión anterior: las imágenes salían de la narración cruda
     # ("antes de los supermercados" -> un supermercado) y nada lo delataba.
     try:
-        prompts = _call(subjects, style, brief)
+        prompts = _call(subjects, style, brief, formato)
     except QuotaExhausted as e:
         if on_progress:
             on_progress(f"Sin director: {e}")

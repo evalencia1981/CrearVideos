@@ -1153,6 +1153,17 @@ Conocemos mejor la superficie de Marte que el fondo de nuestro planeta."></texta
       </div>
     </div>
 
+    <div class="full">
+      <label for="formato">Formato
+        <span class="hint">— las imágenes se generan ya en esta proporción</span>
+      </label>
+      <select id="formato">
+        <option value="vertical">Vertical 9:16 — Shorts, TikTok, Reels</option>
+        <option value="horizontal">Horizontal 16:9 — YouTube largo</option>
+        <option value="cuadrado">Cuadrado 1:1</option>
+      </select>
+    </div>
+
     <div class="full" id="modeloBox">
       <label for="modelo">Modelo de imagen
         <span class="hint">— a más calidad, más pollen por imagen</span>
@@ -1256,7 +1267,7 @@ Conocemos mejor la superficie de Marte que el fondo de nuestro planeta."></texta
       <div id="portadaPrev" class="portada-prev">
         <img id="portadaImg" alt="portada">
         <div>
-          <div class="portada-ok">Se antepondrá al video y se guardará como <b>portada.jpg</b> (1080×1920).</div>
+          <div class="portada-ok">Se antepondrá al video y se guardará como <b>portada.jpg</b>, del tamaño del formato elegido.</div>
           <button type="button" id="portadaQuitar" class="mini">Quitar</button>
         </div>
       </div>
@@ -1706,7 +1717,7 @@ btn.addEventListener("click", async () => {
 
   const chipSel = document.querySelector("#chips .chip.sel");
   const filas = [
-    { k: "Tipo de video", v: "Short vertical 1080×1920 <small>· TikTok, Reels, Shorts</small>" },
+    { k: "Formato", v: esc(textoOpcion("formato")) },
     { k: "Guion", v: `${nEscenas} escenas · ${info.palabras || 0} palabras · <b>~${minSeg(info.duracion_estimada || 0)}</b> estimados` },
     ...(propias || [filaVoz(textoOpcion("voz"), textoOpcion("vozfx"))]),
     { k: "Estilo visual", v: esc(chipSel ? chipSel.textContent : "—") },
@@ -1768,6 +1779,7 @@ async function lanzarCreacion() {
         gratis: $("gratis").checked,
         voz_propia: $("proVozPropia").value.trim(),
         voz_clon: $("proVozClon").value.trim(),
+        formato: $("formato").value,
       }),
     }).then((x) => x.json());
   } catch {

@@ -50,6 +50,7 @@ def crear(
     sin_ducking: bool = typer.Option(False, "--sin-ducking", help="Música a volumen fijo, sin bajarla bajo la voz"),
     voz_propia: Path = typer.Option(None, "--voz-propia", exists=True, help="TU voz ya grabada: un MP3/WAV con toda la narración, o una carpeta con un audio por escena"),
     voz_clon: Path = typer.Option(None, "--voz-clon", exists=True, help="Clonar tu voz: muestra de 15-30 s y genera la narración imitándola"),
+    formato: str = typer.Option("vertical", "--formato", "-f", help="vertical (9:16) | horizontal (16:9) | cuadrado"),
     salida: Path = typer.Option(None, "--salida", "-s", help="Carpeta donde dejar el proyecto"),
 ):
     """Genera el video a partir de un guion."""
@@ -149,6 +150,7 @@ def crear(
             f"[bold]{name}[/bold]\n"
             f"voz       [cyan]{voz_propia.name + ' (tuya, grabada)' if voz_propia else (('clon de ' + voz_clon.name) if voz_clon else settings.voice.name)}[/cyan]\n"
             f"imágenes  [cyan]{img_label}[/cyan]\n"
+            f"formato   [cyan]{formato}[/cyan]\n"
             f"estilo    [cyan]{estilo or 'auto'}[/cyan]\n"
             f"voz fx    [cyan]{voicefx.label(voz_fx, estilo)}[/cyan]\n"
             f"portada   [cyan]{portada.name if portada else 'no'}[/cyan]\n"
@@ -175,6 +177,7 @@ def crear(
                 references=referencia,
                 voz_propia=voz_propia,
                 voz_clon=voz_clon,
+                formato=formato,
                 output_dir=salida,
                 on_progress=lambda m: status.update(f"[cyan]{m}…"),
             )

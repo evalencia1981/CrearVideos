@@ -24,7 +24,7 @@ from pathlib import Path
 
 from PIL import Image, ImageOps
 
-from ...config import PLACEHOLDER_HEIGHT, PLACEHOLDER_WIDTH, api_key
+from ...config import api_key
 from .base import ImageProvider
 
 ENDPOINT = "https://api.pexels.com/v1/search"
@@ -75,21 +75,21 @@ def _terms(subject: str) -> list[str]:
     return [w for w in words if w not in STOPWORDS and len(w) > 2]
 
 
-def _big_enough(photo: dict) -> bool:
+def _big_enough(photo: dict, destino: tuple[int, int]) -> bool:
     return (
-        photo.get("width", 0) >= PLACEHOLDER_WIDTH
-        and photo.get("height", 0) >= PLACEHOLDER_HEIGHT
+        photo.get("width", 0) >= destino[0]
+        and photo.get("height", 0) >= destino[1]
     )
 
 
-def _best(photos: list[dict]) -> dict:
+def _best(photos: list[dict], destino: tuple[int, int]) -> dict:
     """Elige la primera foto que tenga resolución de sobra.
 
     Pexels ya devuelve por relevancia, así que se respeta ese orden y solo se
     descartan las que habría que ampliar. Si ninguna llega, se coge la más
     grande: ampliar un poco se nota menos que perder la escena.
     """
-    return next((p for p in photos if _big_enough(p)), None) or max(
+    return next((p for p in photos if _big_enough(p, destino)), None) or max(
         photos, key=lambda p: p.get("width", 0) * p.get("height", 0)
     )
 
@@ -121,7 +121,10 @@ class PexelsImages(ImageProvider):
         params = urllib.parse.urlencode(
             {
                 "query": query,
-                "orientation": "portrait",  # el video es 9:16
+                # La orientación del video: así llegan fotos que no hay que
+                # recortar a la mitad.
+                "orientation": {"9:16": "portrait", "16:9": "landscape"}.get(
+                    self.relacion, "square"),
                 # Sin filtro `size`: el 'large' de Pexels son 24 MP y aquí
                 # sobran 3,7. Pedirlo tiraría casi todo el catálogo y dejaría
                 # búsquedas vacías. El tamaño se juzga foto a foto en _find.
@@ -175,10 +178,10 @@ class PexelsImages(ImageProvider):
             photos = self._search(" ".join(terms[:n]))
             fresh = [p for p in photos if p["id"] not in self._used]
             if fresh:
-                return self._take(_best(fresh))
+                return self._take(_best(fresh, self.destino))
             # Todas repetidas: mejor repetir una foto que quedarse sin escena.
             if photos and n == 1:
-                return self._take(_best(photos))
+                return self._take(_best(photos, self.destino))
 
         raise RuntimeError(
             f"Pexels no encontró ninguna foto para la escena {index + 1} "
@@ -212,12 +215,10 @@ class PexelsImages(ImageProvider):
         tmp.write_bytes(raw)
 
         # La foto viene en cualquier proporción y tamaño. `fit` recorta al
-        # centro hasta el 9:16 exacto que espera el montaje, sin deformar.
+        # centro hasta la proporción exacta del video, sin deformar.
         with Image.open(tmp) as img:
             img = ImageOps.exif_transpose(img).convert("RGB")
-            img = ImageOps.fit(
-                img, (PLACEHOLDER_WIDTH, PLACEHOLDER_HEIGHT), Image.LANCZOS
-            )
+            img = ImageOps.fit(img, self.destino, Image.LANCZOS)
             img.save(out_path, "JPEG", quality=92)
         tmp.unlink(missing_ok=True)
 

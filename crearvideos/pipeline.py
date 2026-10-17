@@ -18,13 +18,13 @@ import math
 from pathlib import Path
 
 from . import compose, director, ffmpeg, pausas, voicefx
-from .config import FPS, OUTPUT_DIR, Settings, VoiceSettings
+from .config import FPS, OUTPUT_DIR, Settings, VoiceSettings, formato as resolver_formato
 from .models import Project, Scene, Word
 from .providers import get_image_provider, get_tts_provider
 from .providers.images.base import ImageProvider
 from .providers.tts.base import TTSProvider
 from .script import load, parse
-from .subtitles import write_ass
+from .subtitles import escalar_estilo, write_ass
 
 
 def _quantize(seconds: float) -> float:
@@ -569,7 +569,12 @@ def illustrate(project: Project, provider: ImageProvider, on_progress=None) -> f
     for scene in project.scenes:
         path = project.image_dir / f"escena_{scene.index:03d}.jpg"
         clave = str(scene.index)
-        fp = _fingerprint(provider.name, provider.fingerprint_extra, scene.image_prompt)
+        # El vertical no entra en la huella para no invalidar lo ya generado;
+        # una imagen 9:16 no sirve para un video 16:9, así que otro formato sí.
+        extra = provider.fingerprint_extra
+        if provider.formato != "vertical":
+            extra += f"|{provider.formato}"
+        fp = _fingerprint(provider.name, extra, scene.image_prompt)
 
         if path.exists() and previas.get(clave) == fp:
             scene.image_path = path
@@ -606,6 +611,7 @@ def create(
     voz_propia: Path | None = None,
     voz_clon: Path | None = None,
     clon_idioma: str = "es",
+    formato: str = "vertical",
     output_dir: Path | None = None,
     on_progress=None,
 ) -> tuple[Project, float]:
@@ -617,17 +623,31 @@ def create(
 
     `portada` es una imagen que se antepone al video como fotograma de apertura
     (para elegirla de portada en TikTok) y se guarda además como `portada.jpg`
-    1080x1920 para subir de miniatura en YouTube.
+    del tamaño del video para subir de miniatura a YouTube.
 
     `voz_propia` (tu narración ya grabada) y `voz_clon` (una muestra de tu voz)
     sustituyen a la voz generada, igual que en el montaje. Son excluyentes.
+
+    `formato` es vertical (9:16, TikTok/Reels/Shorts), horizontal (16:9,
+    YouTube largo) o cuadrado: las imágenes se piden ya en esa proporción.
     """
+    tamaño = resolver_formato(formato)
+    settings.formato = formato
     if voz_propia is not None and voz_clon is not None:
         raise ValueError("Elige una sola cosa: o usas tu narración grabada, o clonas tu voz.")
     if isinstance(script_source, Path):
         scenes, meta = load(script_source, settings.scene, style)
     else:
         scenes, meta = parse(script_source, settings.scene, style)
+
+    if formato != "vertical":
+        # El estilo por defecto dice "composición vertical"; sin director, ese
+        # texto llega tal cual al modelo de imagen y pelearía con el formato.
+        for s in scenes:
+            s.image_prompt = s.image_prompt.replace(
+                "composición vertical",
+                "composición horizontal panorámica" if formato == "horizontal" else "composición cuadrada",
+            )
 
     # Las imágenes de referencia (coherencia de personaje) se fijan antes de
     # construir el proveedor, que las lee de los ajustes.
@@ -664,6 +684,7 @@ def create(
             project.image_dir / "_prompts.json",
             on_progress,
             brief=meta.as_brief(),
+            formato=formato,
         )
 
     # La voz decide la duración de cada escena, venga de donde venga: tu
@@ -692,18 +713,22 @@ def create(
 
     if on_progress:
         on_progress("Generando subtítulos")
-    write_ass(project.all_words(), project.subtitle_path, settings.subtitle)
+    # La letra está pensada para 1920 px de alto; en 16:9 se escala igual que
+    # en el montaje, o el subtítulo taparía media pantalla.
+    write_ass(project.all_words(), project.subtitle_path,
+              escalar_estilo(settings.subtitle, tamaño), tamaño)
 
-    compose.build_video(project, settings, music=music, on_progress=on_progress)
+    compose.build_video(project, settings, music=music, size=tamaño, on_progress=on_progress)
 
     if portada is not None:
         if on_progress:
             on_progress("Añadiendo portada")
         # Miniatura suelta para YouTube y, con ella, el fotograma de apertura.
         normal = project.root / "portada.jpg"
-        compose.normalize_cover(portada, normal)
+        compose.normalize_cover(portada, normal, size=tamaño)
         con_portada = project.output_path.with_name(project.output_path.stem + "_cov.mp4")
-        compose.add_cover(project.output_path, normal, con_portada, seconds=portada_seconds)
+        compose.add_cover(project.output_path, normal, con_portada, seconds=portada_seconds,
+                          size=tamaño)
         con_portada.replace(project.output_path)
 
     return project, cost

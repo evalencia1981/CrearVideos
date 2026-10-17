@@ -26,7 +26,7 @@ from pathlib import Path
 
 from PIL import Image, ImageOps
 
-from ...config import PLACEHOLDER_HEIGHT, PLACEHOLDER_WIDTH, api_key
+from ...config import api_key
 from .base import ImageProvider
 
 # Nano Banana estable. Alternativas que la clave suele exponer:
@@ -102,10 +102,10 @@ class GeminiImages(ImageProvider):
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {
                 "responseModalities": ["IMAGE"],
-                # Pedir 9:16 al modelo, cuando lo respeta, evita recortar y
+                # Pedir la proporción del video al modelo, cuando lo respeta, evita recortar y
                 # perder parte de la escena. Si el modelo lo ignora, el `fit`
                 # de abajo endereza el encuadre igual.
-                "imageConfig": {"aspectRatio": "9:16"},
+                "imageConfig": {"aspectRatio": self.relacion},
             },
         }
         try:
@@ -122,12 +122,10 @@ class GeminiImages(ImageProvider):
         raw = self._extract(data, index)
 
         # La imagen puede venir en 1:1 o en otra proporción según el modelo.
-        # `fit` la lleva al 9:16 exacto que espera el montaje, sin deformar.
+        # `fit` la lleva a la proporción exacta del video, sin deformar.
         out_path.parent.mkdir(parents=True, exist_ok=True)
         with Image.open(io.BytesIO(raw)) as img:
             img = ImageOps.exif_transpose(img).convert("RGB")
-            img = ImageOps.fit(
-                img, (PLACEHOLDER_WIDTH, PLACEHOLDER_HEIGHT), Image.LANCZOS
-            )
+            img = ImageOps.fit(img, self.destino, Image.LANCZOS)
             img.save(out_path, "JPEG", quality=92)
         return out_path

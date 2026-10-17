@@ -47,7 +47,9 @@ class OpenAIImages(ImageProvider):
             "model": self.model,
             "prompt": prompt,
             "n": 1,
-            "size": "1024x1536",       # vertical
+            # gpt-image da 2:3, 3:2 o 1:1: el más cercano al formato del video;
+            # el montaje recorta el resto.
+            "size": {"9:16": "1024x1536", "16:9": "1536x1024"}.get(self.relacion, "1024x1024"),
             "quality": self.quality,
             "output_format": "jpeg",
         }

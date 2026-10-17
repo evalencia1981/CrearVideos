@@ -12,6 +12,14 @@ from .tts.base import TTSProvider
 
 
 def get_image_provider(settings: Settings) -> ImageProvider:
+    proveedor = _image_provider(settings)
+    # El formato del video viaja al proveedor: así pide la imagen ya en 16:9
+    # o 1:1, en vez de generar un 9:16 y recortarle dos tercios.
+    proveedor.formato = settings.formato or "vertical"
+    return proveedor
+
+
+def _image_provider(settings: Settings) -> ImageProvider:
     name = settings.image_provider.lower()
     if name == "placeholder":
         from .images.placeholder import PlaceholderImages
