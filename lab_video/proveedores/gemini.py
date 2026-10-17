@@ -78,10 +78,19 @@ TIER_GRATIS = (
 )
 
 
+SIN_SALDO = (
+    "el proyecto de la clave usa facturación de PREPAGO y no le queda saldo (Google "
+    "responde 402 'prepayment credits are depleted'). Carga crédito en "
+    "https://ai.studio/projects (Facturación del proyecto) y vuelve a lanzar. No se cobró nada."
+)
+
+
 def _motivo(e: Exception) -> str:
     """Mensaje corto de un error de la API, sin cabeceras ni la clave."""
     if _es_tier_gratis(e):
         return TIER_GRATIS
+    if _codigo(e) == 402 and "prepay" in str(getattr(e, "message", None) or e).lower():
+        return SIN_SALDO
     codigo = _codigo(e)
     texto = getattr(e, "message", None) or str(e)
     texto = " ".join(str(texto).split())[:400]
@@ -181,11 +190,19 @@ def _rest(metodo: str, url: str, **kwargs) -> dict:
         raise ErrorProveedor(f"sin conexión con la API: {type(e).__name__}") from e
     if r.status_code >= 400:
         try:
-            mensaje = (r.json().get("error") or {}).get("message") or r.text
+            cuerpo = r.json()
         except ValueError:
-            mensaje = r.text
+            cuerpo = None
+        # Google devuelve el error como objeto o como lista de objetos.
+        if isinstance(cuerpo, list) and cuerpo:
+            cuerpo = cuerpo[0]
+        error = cuerpo.get("error") if isinstance(cuerpo, dict) else None
+        mensaje = (error.get("message") if isinstance(error, dict) else error) or r.text
         raise _ErrorHTTP(r.status_code, " ".join(str(mensaje).split())[:400])
-    return r.json()
+    datos = r.json()
+    if isinstance(datos, list):
+        datos = datos[0] if datos else {}
+    return datos
 
 
 def _campo(d: dict, *nombres, defecto=None):
