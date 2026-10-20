@@ -472,6 +472,70 @@ def _start_montaje(datos: dict) -> str:
     return job_id
 
 
+def _run_plan(job_id: str, datos: dict) -> None:
+    """Planea clips de duración fija narrando el guion con la voz real."""
+    from .. import planclips
+
+    def progress(msg: str) -> None:
+        with _lock:
+            _jobs[job_id]["mensaje"] = msg
+
+    guion = (datos.get("guion") or "").strip()
+    settings = load_settings()
+    if datos.get("voz"):
+        settings.voice.name = datos["voz"]
+    if voicefx.is_known(datos.get("voz_fx", "none")):
+        settings.voice_fx = datos.get("voz_fx", "none")
+    try:
+        max_seg = max(2.0, min(30.0, float(datos.get("max_seg") or 8)))
+    except (TypeError, ValueError):
+        max_seg = 8.0
+    # El nombre debe ser el que el montaje deducirá del guion planeado: así
+    # encuentra la narración ya hecha y no vuelve a narrar.
+    nombre = (datos.get("nombre") or "").strip()
+    name = _slug(nombre) if nombre else _default_name(" ".join(planclips._bloques(guion)))
+    try:
+        plan = planclips.planear(guion, name, settings, max_seg=max_seg, on_progress=progress)
+        from .. import pausas
+
+        with _lock:
+            _jobs[job_id].update(
+                estado="listo",
+                mensaje="Listo",
+                nombre=name,
+                guion=plan.guion,
+                total=round(plan.total, 1),
+                max_seg=max_seg,
+                voz=plan.voz,
+                avisos=plan.avisos,
+                escenas=[
+                    {"n": i, "duracion": round(e.duracion, 2),
+                     "texto": pausas.limpiar(e.texto), "corte": e.corte_forzado}
+                    for i, e in enumerate(plan.escenas, 1)
+                ],
+                lista=f"/archivo/{name}/plan_clips.txt",
+                guion_txt=f"/archivo/{name}/guion_planeado.txt",
+                carpeta=str(plan.carpeta),
+            )
+    except (planclips.PlanError, FFmpegError, RuntimeError, ValueError, OSError) as e:
+        with _lock:
+            _jobs[job_id].update(estado="error", mensaje=str(e))
+    except Exception as e:  # noqa: BLE001
+        traceback.print_exc()
+        with _lock:
+            _jobs[job_id].update(estado="error", mensaje=f"Error inesperado: {e}")
+
+
+def _start_plan(datos: dict) -> str:
+    global _counter
+    with _lock:
+        _counter += 1
+        job_id = str(_counter)
+        _jobs[job_id] = {"estado": "trabajando", "mensaje": "Preparando"}
+    threading.Thread(target=_run_plan, args=(job_id, datos), daemon=True).start()
+    return job_id
+
+
 #: Filtros del diálogo de archivo, por tipo de campo.
 _FILTROS = {
     "audio": "Audio|*.mp3;*.wav;*.m4a;*.aac;*.ogg;*.opus;*.flac;*.mpeg;*.wma|Todos|*.*",
@@ -1208,7 +1272,7 @@ class Handler(BaseHTTPRequestHandler):
             "/api/nichos", "/api/guion", "/api/catalogo", "/api/estetica", "/api/elegir",
             "/api/segmentos", "/api/unir",
             "/api/voces", "/api/voces/asignar", "/api/voces/generar", "/api/voces/unir",
-            "/api/instalar-voz",
+            "/api/instalar-voz", "/api/planear",
         ):
             self._json({"error": "ruta desconocida"}, 404)
             return
@@ -1570,6 +1634,13 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(montaje.previsualizar(guion, Path(carpeta), ajustes))
             except (MediosError, ValueError) as e:
                 self._json({"error": str(e)}, 400)
+            return
+
+        if ruta == "/api/planear":
+            if not (datos.get("guion") or "").strip():
+                self._json({"error": "El guion está vacío."}, 400)
+                return
+            self._json({"id": _start_plan(datos)})
             return
 
         if ruta == "/api/montar":

@@ -726,6 +726,24 @@
         </span>
       </label>
 
+      <div style="margin-top:14px; padding:12px; border:1px solid var(--line); border-radius:10px; background:var(--panel-2)">
+        <b>¿Vas a generar clips de duración fija (Veo / Google Flow)?</b>
+        <div class="vol-hint" style="margin-top:4px">
+          Narra el guion con la <b>voz y el efecto de abajo</b> y lo parte en escenas que duren
+          como máximo lo que dura cada clip, cortando siempre al final de una oración. Te dice
+          cuántos clips hacer y qué texto lleva cada uno. La narración queda guardada: al
+          montar con este guion no se vuelve a narrar. No cambies la voz después.
+        </div>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:8px">
+          <label for="planSeg" style="margin:0">Cada clip dura</label>
+          <input id="planSeg" type="number" value="8" min="2" max="30" step="0.5" style="width:80px">
+          <span>s</span>
+          <button type="button" id="planBtn" class="mini" style="width:auto; padding:8px 14px; font-size:13px">Planear clips con la voz real</button>
+        </div>
+        <div class="msg" id="planMsg" style="margin-top:8px"></div>
+        <div id="planRes" class="md" style="margin-top:8px"></div>
+      </div>
+
       <div class="full">
         <label for="monCarpeta">Carpeta con tus imágenes y videos
           <span class="hint">— ruta en este PC; si los archivos llevan el número de escena, se emparejan por él</span>
@@ -3568,6 +3586,85 @@ async function lanzarUnion() {
     $("uniCarpetaOut").textContent = "Guardado en " + e.carpeta;
     $("uniResultado").style.display = "block";
   }, 1000);
+}
+
+// ===================== Montaje · planear clips de duración fija =====================
+//
+// Antes de generar los clips en Veo / Flow: se narra el guion con la voz real
+// y se parte en escenas que quepan en un clip. Contar palabras no sirve: cada
+// voz tiene su ritmo y las comas y las (pausa) también duran.
+
+let planSondeo = null;
+
+function planMsg(texto, error) {
+  $("planMsg").className = "msg" + (error ? " err" : "");
+  $("planMsg").textContent = texto;
+}
+
+$("planBtn").addEventListener("click", async () => {
+  const guion = $("monGuion").value.trim();
+  if (!guion) { $("monGuion").focus(); return; }
+  if ($("monVozPropia").value.trim() || $("monVozClon").value.trim()) {
+    return planMsg("El plan se mide con la voz generada de la app. Quita tu narración grabada " +
+                   "o la muestra de voz clonada para planear.", true);
+  }
+  clearInterval(planSondeo);
+  $("planBtn").disabled = true;
+  $("planRes").innerHTML = "";
+  planMsg("Preparando…");
+  let r;
+  try {
+    r = await fetch("/api/planear", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        guion,
+        nombre: $("monNombre").value,
+        voz: $("monVoz").value,
+        voz_fx: $("monFx").value,
+        max_seg: +$("planSeg").value || 8,
+      }),
+    }).then((x) => x.json());
+  } catch {
+    r = { error: CAIDO };
+  }
+  if (r.error) { $("planBtn").disabled = false; return planMsg(r.error, true); }
+
+  planSondeo = setInterval(async () => {
+    const e = await estadoDe(r.id);
+    if (!e) return;
+    if (e.estado === "trabajando") return planMsg((e.mensaje || "Trabajando") + "…");
+    clearInterval(planSondeo);
+    $("planBtn").disabled = false;
+    if (e.estado === "error") return planMsg(e.mensaje, true);
+    planMsg("");
+    planPintar(e);
+  }, 1000);
+});
+
+function planPintar(e) {
+  const filas = e.escenas.map((s) =>
+    `<tr><td>${s.n}</td><td style="white-space:nowrap">${s.duracion.toFixed(1)} s${s.corte ? " ✂" : ""}</td>` +
+    `<td>${esc(s.texto)}</td></tr>`
+  ).join("");
+  const avisos = (e.avisos || []).map((a) => `<p style="color:var(--accent)">${esc(a)}</p>`).join("");
+  $("planRes").innerHTML =
+    `<p><b>${e.escenas.length} clips de hasta ${e.max_seg} s</b> · narración de ` +
+    `<b>${minSeg(e.total)}</b> · voz ${esc(e.voz)}</p>` + avisos +
+    `<div style="display:flex; gap:10px; flex-wrap:wrap; margin:8px 0">` +
+    `<button type="button" id="planUsar" class="mini" style="width:auto; padding:8px 14px; font-size:13px">Usar este guion en Montaje</button>` +
+    `<a class="dl" href="${e.lista}" download>↓ Lista para Flow (.txt)</a>` +
+    `<a class="dl" href="${e.guion_txt}" download>↓ Guion planeado (.txt)</a></div>` +
+    `<p class="vol-hint">Haz un clip por escena y nómbralos <code>01</code>, <code>02</code>… en este orden. ` +
+    `✂ = se cortó una oración larga en una coma.</p>` +
+    `<div style="max-height:360px; overflow:auto"><table><thead><tr><th>#</th><th>Dura</th><th>Narración</th></tr></thead>` +
+    `<tbody>${filas}</tbody></table></div>`;
+  $("planUsar").onclick = () => {
+    $("monGuion").value = e.guion;
+    if (!$("monNombre").value.trim()) $("monNombre").value = e.nombre;
+    planMsg("Listo: el guion de Montaje ahora tiene una escena por clip (separadas por ---).");
+    $("monGuion").scrollIntoView({ behavior: "smooth", block: "center" });
+  };
 }
 
 // ===================== Módulo Montaje =====================

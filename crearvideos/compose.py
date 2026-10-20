@@ -28,6 +28,10 @@ MOVES = ["zoom_in", "pan_right", "zoom_out", "pan_left", "zoom_in_up", "pan_down
 
 ZOOM = 0.14  # cuánto se acerca la cámara a lo largo de la escena
 
+#: Hasta cuánto se ralentiza un clip propio que se queda corto antes de
+#: repetirlo: 1.2 = un 20 % más lento (un clip de 8 s cubre hasta 9,6 s).
+ESTIRAR_MAX = 1.2
+
 
 def _kenburns(move: str, frames: int, size: tuple[int, int] | None = None) -> str:
     """Expresión zoompan para un recorrido.
@@ -121,8 +125,9 @@ def render_video_clip(
 ) -> Path:
     """Recorta un video propio a la duración exacta de una escena, mudo.
 
-    Si el clip es más corto que la narración se repite (`-stream_loop -1`)
-    hasta cubrirla; si es más largo se toma el principio. El audio original se
+    Si el clip es un poco más corto que la narración (hasta `ESTIRAR_MAX`) se
+    ralentiza para cubrirla; si es mucho más corto se repite
+    (`-stream_loop -1`); si es más largo se toma el principio. El audio original se
     descarta: la banda sonora es la narración, y mezclar el audio del clip
     taparía la voz sin que nadie lo pidiera.
 
@@ -132,8 +137,25 @@ def render_video_clip(
     """
     w, h = size or (WIDTH, HEIGHT)
     frames = max(int(round(duration * FPS)), 1)
+
+    # Un clip al que le falta poco (los de 8 s de Veo bajo una narración de
+    # 9 s) se ralentiza en vez de repetirse: un 10 % más lento casi no se nota;
+    # verlo volver a empezar, sí. Si le falta mucho, o no se puede medir, se
+    # repite como siempre.
+    entrada = ["-stream_loop", "-1"]
+    estirar = []
+    try:
+        propio = ffmpeg.duration(src)
+    except (ffmpeg.FFmpegError, KeyError, ValueError):
+        propio = 0.0
+    if 0 < propio < duration and duration / propio <= ESTIRAR_MAX:
+        # Un pelo de más para que nunca falte el último fotograma.
+        estirar = [f"setpts={duration / propio * 1.002:.5f}*PTS"]
+        entrada = []
+
     vf = ",".join(
-        [
+        estirar
+        + [
             f"scale={w}:{h}:force_original_aspect_ratio=increase",
             f"crop={w}:{h}",
             f"fps={FPS}",
@@ -143,7 +165,7 @@ def render_video_clip(
     )
     ffmpeg.run(
         [
-            "-stream_loop", "-1",
+            *entrada,
             "-i", str(src.resolve()),
             "-an",
             "-vf", vf,
