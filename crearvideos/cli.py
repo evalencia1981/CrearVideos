@@ -51,6 +51,7 @@ def crear(
     voz_propia: Path = typer.Option(None, "--voz-propia", exists=True, help="TU voz ya grabada: un MP3/WAV con toda la narración, o una carpeta con un audio por escena"),
     voz_clon: Path = typer.Option(None, "--voz-clon", exists=True, help="Clonar tu voz: muestra de 15-30 s y genera la narración imitándola"),
     formato: str = typer.Option("vertical", "--formato", "-f", help="vertical (9:16) | horizontal (16:9) | cuadrado"),
+    por_parrafo: bool = typer.Option(False, "--por-parrafo", help="Cada párrafo (separado por una línea en blanco) es una escena"),
     salida: Path = typer.Option(None, "--salida", "-s", help="Carpeta donde dejar el proyecto"),
 ):
     """Genera el video a partir de un guion."""
@@ -63,6 +64,7 @@ def crear(
         raise typer.Exit(1)
 
     settings = load_settings()
+    settings.scene.por_parrafo = por_parrafo
     if voz:
         settings.voice.name = voz
     if imagenes:
@@ -285,6 +287,7 @@ def montar_cmd(
     volumen: float = typer.Option(None, "--volumen", help="Volumen de la música, 0 a 1"),
     sin_subtitulos: bool = typer.Option(False, "--sin-subtitulos", help="No quemar los subtítulos en el video"),
     renarrar: bool = typer.Option(False, "--renarrar", help="Volver a generar la voz aunque el proyecto ya tenga una igual"),
+    por_parrafo: bool = typer.Option(False, "--por-parrafo", help="Cada párrafo (separado por una línea en blanco) es una escena"),
     solo_ver: bool = typer.Option(False, "--solo-ver", help="Solo muestra qué archivo va en cada escena y termina"),
     salida: Path = typer.Option(None, "--salida", "-s", help="Carpeta donde dejar el proyecto"),
 ):
@@ -299,6 +302,7 @@ def montar_cmd(
         raise typer.Exit(1)
 
     settings = load_settings()
+    settings.scene.por_parrafo = por_parrafo
     if voz:
         settings.voice.name = voz
     if volumen is not None:

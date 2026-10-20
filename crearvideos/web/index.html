@@ -719,6 +719,12 @@
         <span class="importar-info" id="monArchivoInfo">o pégalo abajo · también puedes arrastrar el .txt</span>
       </div>
       <textarea id="monGuion" placeholder="Pega aquí el guion. Cada escena tomará un archivo de tu carpeta, en orden."></textarea>
+      <label class="check" style="margin-top:8px">
+        <input type="checkbox" id="monParrafo" checked>
+        <span>Cada párrafo es una escena
+          <span class="hint">— una línea en blanco separa escenas: un párrafo por imagen. Si lo desmarcas, la app parte el texto por largo.</span>
+        </span>
+      </label>
 
       <div class="full">
         <label for="monCarpeta">Carpeta con tus imágenes y videos
@@ -1121,6 +1127,12 @@ PROMPT: …"></textarea>
     </div>
     <textarea id="guion" placeholder="El noventa y cinco por ciento del océano sigue sin explorar.
 Conocemos mejor la superficie de Marte que el fondo de nuestro planeta."></textarea>
+    <label class="check" style="margin-top:8px">
+      <input type="checkbox" id="parrafo">
+      <span>Cada párrafo es una escena
+        <span class="hint">— una línea en blanco separa escenas (una imagen por párrafo). Sin marcar, la app parte el texto por largo.</span>
+      </span>
+    </label>
 
     <div class="row">
       <div>
@@ -1685,7 +1697,7 @@ btn.addEventListener("click", async () => {
     info = await fetch("/api/revisar", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ guion }),
+      body: JSON.stringify({ guion, por_parrafo: $("parrafo").checked }),
     }).then((x) => x.json());
   } catch { info = {}; }
   btn.disabled = false;
@@ -1780,6 +1792,7 @@ async function lanzarCreacion() {
         voz_propia: $("proVozPropia").value.trim(),
         voz_clon: $("proVozClon").value.trim(),
         formato: $("formato").value,
+        por_parrafo: $("parrafo").checked,
       }),
     }).then((x) => x.json());
   } catch {
@@ -3581,7 +3594,7 @@ $("verMedios").addEventListener("click", async () => {
     r = await fetch("/api/medios", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ guion, carpeta }),
+      body: JSON.stringify({ guion, carpeta, por_parrafo: $("monParrafo").checked }),
     }).then((x) => x.json());
   } catch {
     $("monPreview").innerHTML = "<p>" + CAIDO + "</p>";
@@ -3612,7 +3625,7 @@ $("montarBtn").addEventListener("click", async () => {
     p = await fetch("/api/medios", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ guion, carpeta }),
+      body: JSON.stringify({ guion, carpeta, por_parrafo: $("monParrafo").checked }),
     }).then((x) => x.json());
   } catch {
     $("montarBtn").disabled = false;
@@ -3676,6 +3689,7 @@ async function lanzarMontaje() {
         volumen: vol(),
         subtitulos: $("monSubs").checked,
         reusar_voz: $("monReusar").checked,
+        por_parrafo: $("monParrafo").checked,
         voz_propia: $("monVozPropia").value.trim(),
         voz_clon: $("monVozClon").value.trim(),
       }),

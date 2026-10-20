@@ -110,6 +110,10 @@ class SceneSettings:
 
     min_chars: int = 70
     max_chars: int = 170
+    #: Cada párrafo (separado por una línea en blanco) es una escena, en vez
+    #: de partir por largo. Es como se escribe un guion pensado imagen por
+    #: imagen: un párrafo por imagen, sin tener que poner `---`.
+    por_parrafo: bool = False
 
 
 @dataclass

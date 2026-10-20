@@ -47,6 +47,8 @@ _META_FIELDS = {
 }
 _IMAGE_RE = re.compile(r"\[\s*imagen\s*:\s*(.+?)\s*\]", re.IGNORECASE | re.DOTALL)
 _SEPARATOR_RE = re.compile(r"^\s*-{3,}\s*$", re.MULTILINE)
+# Una o más líneas en blanco (con espacios o no) separan párrafos.
+_PARRAFO_RE = re.compile(r"\n[ \t]*\n\s*")
 # Corta después de . ! ? … seguidos de espacio y mayúscula/apertura.
 _SENTENCE_RE = re.compile(r"(?<=[.!?…])\s+(?=[¿¡\"'A-ZÁÉÍÓÚÑ0-9])")
 
@@ -139,6 +141,21 @@ def parse(
 
     blocks = [b.strip() for b in _SEPARATOR_RE.split(body) if b.strip()]
     explicit = len(blocks) > 1
+
+    if not explicit and cfg.por_parrafo:
+        # Un párrafo = una escena. Las marcas de pausa solas en su línea no
+        # cuentan como párrafo: se pegan al anterior, que es donde suenan.
+        parrafos: list[str] = []
+        for p in _PARRAFO_RE.split(blocks[0] if blocks else ""):
+            p = p.strip()
+            if not p:
+                continue
+            if parrafos and not pausas.limpiar(p):
+                parrafos[-1] = f"{parrafos[-1]} {p}"
+            else:
+                parrafos.append(p)
+        if len(parrafos) > 1:
+            blocks, explicit = parrafos, True
 
     if not explicit:
         text = blocks[0] if blocks else ""

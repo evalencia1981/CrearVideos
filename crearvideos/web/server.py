@@ -85,12 +85,14 @@ def _run_job(
     voz_propia: str = "",
     voz_clon: str = "",
     formato: str = "vertical",
+    por_parrafo: bool = False,
 ) -> None:
     from ..clonvoz import ClonError
     from ..vozpropia import VozPropiaError
 
     settings = load_settings()
     settings.pollinations_free = gratis
+    settings.scene.por_parrafo = por_parrafo
     if voz:
         settings.voice.name = voz
     if imagenes:
@@ -378,6 +380,7 @@ def _run_montaje(
     reusar_voz: bool,
     voz_propia: str,
     voz_clon: str,
+    por_parrafo: bool = False,
 ) -> None:
     """Módulo montaje: el guion + los medios del usuario -> video."""
     from .. import montaje
@@ -390,6 +393,7 @@ def _run_montaje(
             _jobs[job_id]["mensaje"] = msg
 
     settings = load_settings()
+    settings.scene.por_parrafo = por_parrafo
     if voz:
         settings.voice.name = voz
     if voicefx.is_known(voz_fx):
@@ -461,6 +465,7 @@ def _start_montaje(datos: dict) -> str:
             datos.get("reusar_voz", True) is not False,
             datos.get("voz_propia", ""),
             datos.get("voz_clon", ""),
+            datos.get("por_parrafo") is True,
         ),
         daemon=True,
     ).start()
@@ -924,6 +929,7 @@ def _start_job(
     voz_propia: str = "",
     voz_clon: str = "",
     formato: str = "vertical",
+    por_parrafo: bool = False,
 ) -> str:
     global _counter
     with _lock:
@@ -935,7 +941,7 @@ def _start_job(
         target=_run_job,
         args=(job_id, guion, name, voz, imagenes, modelo, estilo, director,
               musica, volumen, voz_fx, portada_data, referencias_data,
-              usar_referencia, gratis, voz_propia, voz_clon, formato),
+              usar_referencia, gratis, voz_propia, voz_clon, formato, por_parrafo),
         daemon=True,
     ).start()
     return job_id
@@ -1353,7 +1359,9 @@ class Handler(BaseHTTPRequestHandler):
                 self._json({"error": "El guion está vacío."}, 400)
                 return
             try:
-                scenes, _ = parse(guion, load_settings().scene)
+                escena = load_settings().scene
+                escena.por_parrafo = datos.get("por_parrafo") is True
+                scenes, _ = parse(guion, escena)
             except ValueError as e:
                 self._json({"error": str(e)}, 400)
                 return
@@ -1557,7 +1565,9 @@ class Handler(BaseHTTPRequestHandler):
                 self._json({"error": "Hacen falta el guion y la carpeta de medios."}, 400)
                 return
             try:
-                self._json(montaje.previsualizar(guion, Path(carpeta)))
+                ajustes = load_settings()
+                ajustes.scene.por_parrafo = datos.get("por_parrafo") is True
+                self._json(montaje.previsualizar(guion, Path(carpeta), ajustes))
             except (MediosError, ValueError) as e:
                 self._json({"error": str(e)}, 400)
             return
@@ -1649,6 +1659,7 @@ class Handler(BaseHTTPRequestHandler):
             datos.get("voz_clon", ""),
             # Un formato desconocido cae al vertical en vez de romper el trabajo.
             datos.get("formato") if datos.get("formato") in FORMATOS else "vertical",
+            datos.get("por_parrafo") is True,
         )
         self._json({"id": job_id})
 
