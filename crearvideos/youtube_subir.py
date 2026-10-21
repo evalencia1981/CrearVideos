@@ -257,7 +257,11 @@ def subir(
     video_id = respuesta["id"]
     url = f"https://youtu.be/{video_id}"
 
-    portada = miniatura or (raiz / "portada.jpg" if (raiz / "portada.jpg").is_file() else None)
+    # La miniatura hecha en la sección Miniatura (16:9, con título) manda; si
+    # no hay, la portada de siempre.
+    portada = miniatura or next(
+        (raiz / n for n in ("miniatura.jpg", "portada.jpg") if (raiz / n).is_file()), None
+    )
     aviso = ""
     if portada and Path(portada).is_file():
         try:

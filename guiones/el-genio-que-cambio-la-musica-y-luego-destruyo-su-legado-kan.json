@@ -1,0 +1,75 @@
+{
+  "tema": "El genio que inspiró a todos… pero arruinó su propia obra | Documental. Cultura pop o arte con caída del creador.",
+  "titulo": "El genio que cambió la música y luego destruyó su legado | Kanye West | Documental",
+  "gancho": "La misma mente que cambió la música para siempre fue la que terminó incendiando su propio imperio.",
+  "escenas": 52,
+  "palabras": 1240,
+  "duracion_estimada": 438,
+  "referencia": {
+    "titulo": "",
+    "canal": "Dieck Docs",
+    "nicho": "documentales narrativos de cultura pop, crimen y biografías",
+    "audiencia": "personas interesadas en historias reales, celebridades, crimen, controversias y biografías contadas como documental emocional",
+    "tono": "dramático, reflexivo y cercano; mezcla admiración, juicio moral y compasión, con lenguaje de documental y suspenso",
+    "promesa": "Te cuenta la historia completa de personajes y casos famosos para que entiendas qué pasó, por qué pasó y qué reveló sobre la sociedad.",
+    "formula_titulo": "The [OBJETO/PRUEBA] that was supposed to [VERBO NEGATIVO] him ended up [VERBO POSITIVO] him | [NOMBRE] | Documentary",
+    "disparadores": [],
+    "gancho": "Abrir con una imagen concreta y una contradicción inmediata.",
+    "estructura": [
+      "1. Arranque con una imagen o frase que contiene la paradoja central del caso.",
+      "2. Contexto biográfico o histórico para explicar por qué el personaje importa.",
+      "3. Ascenso: fama, éxito, influencia o inocencia aparente.",
+      "4. Quiebre: un evento, crimen, trauma o revelación que cambia la interpretación.",
+      "5. Consecuencia y cierre con una lección moral o un giro final."
+    ],
+    "retencion": [],
+    "porque": "Los outliers tienen una paradoja más nítida, una mayor claridad moral y un gancho más universal. El largo de O.J. Simpson explota una contradicción brutal desde el inicio: \"los guantes no le entran y con eso O.J. salió libre\" [0:21], pero luego promete un giro todavía más irónico: \"terminaría en prisión por algo completamente diferente\" [0:21]. El video de Jennette McCurdy convierte una emoción íntima en historia universal con frases como \"La mujer que había puesto en un pedestal... también le había mentido\" [0:00], mientras que el short sobre Nickelodeon usa recontextualización cultural: \"mucha gente empezará a verlos de otra manera\" [0:20]. En cambio, los videos normales suelen apoyarse más en fórmulas informativas menos tensas o en preguntas menos cargadas, como \"What does a film DIRECTOR actually do?\" o \"Why was Ferrari BANKRUPT?\", que son buenas pero menos explosivas emocionalmente.",
+    "estilo_visual": {
+      "estilo": "Fotomontaje documental cinematográfico, con rostros recortados, objetos simbólicos, contraste fuerte y composición pensada para leer en móvil.",
+      "paleta": "Negros, grises, beige, rojo de alarma y amarillo para texto de alto impacto.",
+      "evitar": "Fondos planos sin contraste, exceso de texto, miniaturas genéricas sin rostro ni símbolo, y escenas demasiado limpias o corporativas."
+    },
+    "ideas": [
+      {
+        "titulo": "La empresa que se volvió símbolo de éxito… y terminó destruyéndose sola | Documental",
+        "gancho": "Todo parecía una historia de triunfo hasta que una sola decisión cambió cómo todos la verían.",
+        "angulo": "Historia empresarial con caída moral y giro de percepción pública."
+      },
+      {
+        "titulo": "El atleta que lo tenía todo… y perdió su nombre | Documental",
+        "gancho": "Durante años fue admirado por millones, pero el problema empezó cuando descubrió que la fama no lo protegía.",
+        "angulo": "Biografía deportiva con conflicto identitario y descenso."
+      },
+      {
+        "titulo": "La mentira familiar que cambió la vida de una estrella infantil | Documental",
+        "gancho": "La noticia no parecía grande al principio, pero terminó reescribiendo toda su infancia.",
+        "angulo": "Trauma familiar y reconstrucción emocional."
+      },
+      {
+        "titulo": "El juicio donde la evidencia decía una cosa… y el mundo vio otra | Documental",
+        "gancho": "Todo el caso se resumía en una sola prueba, pero la historia era mucho más grande que eso.",
+        "angulo": "Crimen/justicia con foco en percepción pública."
+      },
+      {
+        "titulo": "El genio que inspiró a todos… pero arruinó su propia obra | Documental",
+        "gancho": "Lo que parecía una inspiración terminó convirtiéndose en una sombra imposible de ignorar.",
+        "angulo": "Cultura pop o arte con caída del creador."
+      },
+      {
+        "titulo": "La institución que intentó esconder un escándalo… y lo hizo peor | Documental",
+        "gancho": "Cuando intentaron taparlo, sin querer hicieron que todo explotara con más fuerza.",
+        "angulo": "Poder institucional, encubrimiento y backlash."
+      },
+      {
+        "titulo": "La figura más querida de su país… hasta que todos supieron la verdad | Documental",
+        "gancho": "El cariño del público era real, pero descansaba sobre una historia que nadie quería mirar de frente.",
+        "angulo": "Caída de reputación de una celebridad o líder."
+      },
+      {
+        "titulo": "El error que convirtió una carrera perfecta en una tragedia pública | Documental",
+        "gancho": "No fue un fracaso cualquiera; fue el tipo de error que cambia cómo la historia te recuerda.",
+        "angulo": "Deporte, entretenimiento o negocios con foco en error decisivo."
+      }
+    ]
+  }
+}

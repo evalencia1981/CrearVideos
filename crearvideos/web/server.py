@@ -536,6 +536,95 @@ def _start_plan(datos: dict) -> str:
     return job_id
 
 
+def _idea_miniatura(datos: dict) -> str:
+    """Lo que debe verse: lo que escribió el usuario o, si no, el arranque del guion."""
+    idea = (datos.get("idea") or "").strip()
+    if idea:
+        return idea
+    guion = (datos.get("guion") or "").strip()
+    if not guion:
+        return ""
+    from .. import pausas
+    from ..script import parse
+
+    try:
+        escenas, _ = parse(guion, load_settings().scene)
+    except ValueError:
+        return ""
+    return pausas.limpiar(" ".join(s.text for s in escenas[:2]))[:300]
+
+
+def _run_miniatura(job_id: str, datos: dict) -> None:
+    """Fondo (IA, imagen propia o el anterior) + título compuesto en local."""
+    from .. import miniatura as mini
+
+    def progress(msg: str) -> None:
+        with _lock:
+            _jobs[job_id]["mensaje"] = msg
+
+    guion = (datos.get("guion") or "").strip()
+    nombre = (datos.get("nombre") or "").strip()
+    name = _slug(nombre) if nombre else (_default_name(guion) if guion else "miniaturas")
+    carpeta = OUTPUT_DIR / name
+    formato = datos.get("formato") if datos.get("formato") in mini.FORMATOS else "youtube"
+    sufijo = "" if formato == "youtube" else "_vertical"
+    fondo = carpeta / f"miniatura_fondo{sufijo}.jpg"
+    salida = carpeta / f"miniatura{sufijo}.jpg"
+    fuente = datos.get("fuente", "ia")
+    texto_prompt = ""
+    try:
+        carpeta.mkdir(parents=True, exist_ok=True)
+        if fuente == "archivo":
+            if not _decode_portada(datos.get("imagen", ""), fondo):
+                raise mini.MiniaturaError("No llegó la imagen, o no se pudo leer.")
+        elif fuente == "anterior":
+            if not fondo.is_file():
+                raise mini.MiniaturaError("Todavía no hay un fondo hecho para este proyecto.")
+        else:
+            settings = load_settings()
+            settings.pollinations_free = datos.get("gratis") is True
+            if datos.get("imagenes"):
+                settings.image_provider = datos["imagenes"]
+            if datos.get("modelo"):
+                settings.image_model = datos["modelo"]
+            texto_prompt = mini.prompt(
+                _idea_miniatura(datos),
+                estilo_visual=styles.resolve(datos.get("estilo") or ""),
+                formato=formato,
+                lado=datos.get("lado", "izquierda"),
+            )
+            progress("Generando el fondo con IA")
+            mini.generar_fondo(texto_prompt, fondo, settings, formato=formato,
+                               semilla=int(datos.get("semilla") or 0))
+        progress("Poniendo el título")
+        mini.componer(fondo, datos.get("texto", ""), salida, formato=formato,
+                      estilo=datos.get("estilo_texto", "impacto"),
+                      lado=datos.get("lado", "izquierda"))
+        with _lock:
+            _jobs[job_id].update(
+                estado="listo", mensaje="Listo",
+                url=f"/archivo/{name}/{salida.name}",
+                prompt=texto_prompt, carpeta=str(carpeta), proyecto=name,
+            )
+    except (mini.MiniaturaError, FFmpegError, RuntimeError, ValueError, OSError) as e:
+        with _lock:
+            _jobs[job_id].update(estado="error", mensaje=str(e))
+    except Exception as e:  # noqa: BLE001
+        traceback.print_exc()
+        with _lock:
+            _jobs[job_id].update(estado="error", mensaje=f"Error inesperado: {e}")
+
+
+def _start_miniatura(datos: dict) -> str:
+    global _counter
+    with _lock:
+        _counter += 1
+        job_id = str(_counter)
+        _jobs[job_id] = {"estado": "trabajando", "mensaje": "Preparando"}
+    threading.Thread(target=_run_miniatura, args=(job_id, datos), daemon=True).start()
+    return job_id
+
+
 #: Filtros del diálogo de archivo, por tipo de campo.
 _FILTROS = {
     "audio": "Audio|*.mp3;*.wav;*.m4a;*.aac;*.ogg;*.opus;*.flac;*.mpeg;*.wma|Todos|*.*",
@@ -1155,6 +1244,7 @@ class Handler(BaseHTTPRequestHandler):
             self._send_file(INDEX, "text/html; charset=utf-8")
         elif ruta.path == "/api/estilos":
             from ..ensamblar import TRANSICIONES
+            from ..miniatura import opciones as miniatura_opciones
             from ..providers.images import pollinations as poll
 
             self._json(
@@ -1166,6 +1256,7 @@ class Handler(BaseHTTPRequestHandler):
                         {"value": k, "label": d} for k, (_, d) in TRANSICIONES.items()
                     ],
                     "modelo_actual": load_settings().image_model or poll.DEFAULT_MODEL,
+                    "miniatura": miniatura_opciones(),
                 }
             )
         elif ruta.path == "/api/musica":
@@ -1272,7 +1363,7 @@ class Handler(BaseHTTPRequestHandler):
             "/api/nichos", "/api/guion", "/api/catalogo", "/api/estetica", "/api/elegir",
             "/api/segmentos", "/api/unir",
             "/api/voces", "/api/voces/asignar", "/api/voces/generar", "/api/voces/unir",
-            "/api/instalar-voz", "/api/planear",
+            "/api/instalar-voz", "/api/planear", "/api/miniatura", "/api/miniatura-prompt",
         ):
             self._json({"error": "ruta desconocida"}, 404)
             return
@@ -1634,6 +1725,27 @@ class Handler(BaseHTTPRequestHandler):
                 self._json(montaje.previsualizar(guion, Path(carpeta), ajustes))
             except (MediosError, ValueError) as e:
                 self._json({"error": str(e)}, 400)
+            return
+
+        if ruta == "/api/miniatura-prompt":
+            from .. import miniatura as mini
+
+            try:
+                self._json({"prompt": mini.prompt(
+                    _idea_miniatura(datos),
+                    estilo_visual=styles.resolve(datos.get("estilo") or ""),
+                    formato=datos.get("formato", "youtube"),
+                    lado=datos.get("lado", "izquierda"),
+                )})
+            except mini.MiniaturaError as e:
+                self._json({"error": str(e)}, 400)
+            return
+
+        if ruta == "/api/miniatura":
+            if not (datos.get("texto") or "").strip():
+                self._json({"error": "Escribe el texto de la miniatura."}, 400)
+                return
+            self._json({"id": _start_miniatura(datos)})
             return
 
         if ruta == "/api/planear":

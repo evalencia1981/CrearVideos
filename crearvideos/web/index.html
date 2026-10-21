@@ -1362,6 +1362,81 @@ Conocemos mejor la superficie de Marte que el fondo de nuestro planeta."></texta
 
     <div class="aviso" id="avisoAuto" style="display:none"></div>
   </div>
+
+  <div class="card" id="cardMiniatura" style="margin-top:18px">
+    <h2 style="margin:0 0 4px; font-size:15px; color:var(--accent); text-transform:uppercase; letter-spacing:.6px">Miniatura</h2>
+    <p class="vol-hint" style="margin-top:0">
+      La imagen se pide <b>sin texto</b> y el título lo pone la app, con tipografía de
+      miniatura: las IA escriben mal las letras. Se guarda como <b>miniatura.jpg</b> en el
+      proyecto (el del nombre de arriba, o el que sale del guion) y es la que se sube a YouTube.
+    </p>
+
+    <div class="full">
+      <label for="miniTexto">Texto de la miniatura
+        <span class="hint">— 3 a 6 palabras; lo que va entre <code>*asteriscos*</code> sale resaltado</span>
+      </label>
+      <input id="miniTexto" type="text" placeholder="El ruido *no es el final*">
+    </div>
+
+    <div class="full">
+      <label for="miniIdea">¿Qué debe verse?
+        <span class="hint">— si lo dejas vacío, se usa el comienzo del guion</span>
+      </label>
+      <textarea id="miniIdea" style="min-height:70px" placeholder="Un anciano reparando una radio antigua junto a un joven triste, luz cálida de taller"></textarea>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="miniFormato">Formato</label>
+        <select id="miniFormato"></select>
+      </div>
+      <div>
+        <label for="miniEstilo">Estilo del texto</label>
+        <select id="miniEstilo"></select>
+      </div>
+    </div>
+    <div class="row">
+      <div>
+        <label for="miniLado">Lado del texto</label>
+        <select id="miniLado">
+          <option value="izquierda">Izquierda</option>
+          <option value="derecha">Derecha</option>
+          <option value="centro">Abajo, centrado</option>
+        </select>
+      </div>
+      <div>
+        <label for="miniFuente">Fondo</label>
+        <select id="miniFuente">
+          <option value="ia">Generarlo con IA (el modelo de imagen de arriba)</option>
+          <option value="archivo">Usar una imagen mía o de otra IA</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="full" id="miniArchivoBox" style="display:none">
+      <label for="miniArchivo">Tu imagen
+        <span class="hint">— una escena del video, una foto, o la que hiciste con el prompt en otra IA</span>
+      </label>
+      <input type="file" id="miniArchivo" accept="image/*">
+    </div>
+
+    <div class="inf-acciones" style="margin:12px 0 4px">
+      <button type="button" id="miniCrear">Crear miniatura</button>
+      <button type="button" id="miniPrompt">Solo darme el prompt <small>(para otra IA, gratis)</small></button>
+      <button type="button" id="miniRetexto" style="display:none">Rehacer solo el texto</button>
+    </div>
+    <div class="msg" id="miniMsg"></div>
+    <div id="miniPromptBox" style="display:none; margin-top:10px">
+      <label for="miniPromptTxt">Prompt para Midjourney, Gemini, ChatGPT, Leonardo…</label>
+      <textarea id="miniPromptTxt" readonly style="min-height:110px"></textarea>
+      <div class="vol-hint">Genera la imagen allí, descárgala y súbela con <b>Fondo → Usar una imagen mía</b>: la app le pone el título.</div>
+      <button type="button" id="miniCopiar" class="mini" style="width:auto; padding:6px 12px; margin-top:6px">Copiar prompt</button>
+    </div>
+    <div id="miniRes" style="display:none; margin-top:12px">
+      <img id="miniImg" alt="miniatura" style="width:100%; border-radius:10px; display:block">
+      <a class="dl" id="miniDescargar" download>↓ Descargar miniatura</a>
+    </div>
+  </div>
   </section>
 </div>
 
@@ -3587,6 +3662,122 @@ async function lanzarUnion() {
     $("uniResultado").style.display = "block";
   }, 1000);
 }
+
+// ===================== Producción · miniatura =====================
+//
+// El fondo sale de la IA o de una imagen tuya; el título lo compone la app.
+// Rehacer solo el texto reutiliza el fondo: no se vuelve a generar ni a pagar.
+
+let miniArchivoData = "";
+let miniSondeo = null;
+
+(async () => {
+  try {
+    const r = await fetch("/api/estilos").then((x) => x.json());
+    const llenar = (id, lista) => {
+      $(id).innerHTML = (lista || []).map((o) => `<option value="${o.value}">${esc(o.label)}</option>`).join("");
+    };
+    llenar("miniFormato", (r.miniatura || {}).formatos);
+    llenar("miniEstilo", (r.miniatura || {}).estilos);
+  } catch { /* sin servidor: el aviso general ya lo dice */ }
+})();
+
+$("miniFuente").addEventListener("change", () => {
+  $("miniArchivoBox").style.display = $("miniFuente").value === "archivo" ? "block" : "none";
+});
+
+$("miniArchivo").addEventListener("change", () => {
+  const f = $("miniArchivo").files[0];
+  miniArchivoData = "";
+  if (!f) return;
+  const lector = new FileReader();
+  lector.onload = () => { miniArchivoData = lector.result; };
+  lector.readAsDataURL(f);
+});
+
+function miniMsg(texto, error) {
+  $("miniMsg").className = "msg" + (error ? " err" : "");
+  $("miniMsg").textContent = texto;
+}
+
+function miniDatos(fuente) {
+  return {
+    texto: $("miniTexto").value.trim(),
+    idea: $("miniIdea").value.trim(),
+    guion: $("guion").value.trim(),
+    nombre: $("nombre").value,
+    formato: $("miniFormato").value,
+    estilo_texto: $("miniEstilo").value,
+    lado: $("miniLado").value,
+    estilo: estiloSel,
+    imagenes: $("imagenes").value,
+    modelo: $("modelo").value,
+    gratis: $("gratis").checked,
+    fuente,
+    imagen: fuente === "archivo" ? miniArchivoData : "",
+  };
+}
+
+async function miniLanzar(fuente) {
+  const datos = miniDatos(fuente);
+  if (!datos.texto) { $("miniTexto").focus(); return; }
+  if (fuente === "archivo" && !datos.imagen) return miniMsg("Elige primero tu imagen.", true);
+  clearInterval(miniSondeo);
+  ["miniCrear", "miniRetexto"].forEach((id) => ($(id).disabled = true));
+  miniMsg(fuente === "ia" ? "Generando el fondo con IA…" : "Poniendo el título…");
+  let r;
+  try {
+    r = await fetch("/api/miniatura", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(datos),
+    }).then((x) => x.json());
+  } catch { r = { error: CAIDO }; }
+  const soltar = () => ["miniCrear", "miniRetexto"].forEach((id) => ($(id).disabled = false));
+  if (r.error) { soltar(); return miniMsg(r.error, true); }
+  miniSondeo = setInterval(async () => {
+    const e = await estadoDe(r.id);
+    if (!e) return;
+    if (e.estado === "trabajando") return miniMsg((e.mensaje || "Trabajando") + "…");
+    clearInterval(miniSondeo);
+    soltar();
+    if (e.estado === "error") return miniMsg(e.mensaje, true);
+    miniMsg("Guardada en " + e.carpeta);
+    const url = e.url + "?v=" + Date.now();
+    $("miniImg").src = url;
+    $("miniDescargar").href = url;
+    $("miniRes").style.display = "block";
+    $("miniRetexto").style.display = "inline-block";
+    if (e.prompt) { $("miniPromptTxt").value = e.prompt; }
+  }, 1000);
+}
+
+$("miniCrear").addEventListener("click", () => miniLanzar($("miniFuente").value));
+$("miniRetexto").addEventListener("click", () => miniLanzar("anterior"));
+
+$("miniPrompt").addEventListener("click", async () => {
+  let r;
+  try {
+    r = await fetch("/api/miniatura-prompt", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(miniDatos("ia")),
+    }).then((x) => x.json());
+  } catch { r = { error: CAIDO }; }
+  if (r.error) return miniMsg(r.error, true);
+  miniMsg("");
+  $("miniPromptTxt").value = r.prompt;
+  $("miniPromptBox").style.display = "block";
+});
+
+$("miniCopiar").addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText($("miniPromptTxt").value);
+    $("miniCopiar").textContent = "¡Copiado!";
+  } catch {
+    $("miniPromptTxt").select();
+    $("miniCopiar").textContent = "Selecciónalo y copia con Ctrl+C";
+  }
+  setTimeout(() => ($("miniCopiar").textContent = "Copiar prompt"), 2000);
+});
 
 // ===================== Montaje · planear clips de duración fija =====================
 //
