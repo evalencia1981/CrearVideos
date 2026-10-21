@@ -64,6 +64,10 @@ class MontajeResult:
         return self.emparejado.avisos
 
 
+def _recorte(texto: str, largo: int) -> str:
+    return texto if len(texto) <= largo else texto[:largo].rstrip() + "…"
+
+
 def previsualizar(script_source: str | Path, carpeta: Path, settings: Settings | None = None) -> dict:
     """Qué archivo iría en cada escena, sin generar ni narrar nada.
 
@@ -92,7 +96,9 @@ def previsualizar(script_source: str | Path, carpeta: Path, settings: Settings |
         "metodo": emp.metodo,
         "avisos": emp.avisos,
         "filas": [
-            {**fila, "texto": pausas.limpiar(s.text)[:90]}
+            # Solo para la tabla de vista previa; con "…" para que se vea que
+            # sigue (la narración usa siempre el texto completo).
+            {**fila, "texto": _recorte(pausas.limpiar(s.text), 90)}
             for fila, s in zip(medios_lib.resumen(emp, len(scenes)), scenes)
         ],
     }
