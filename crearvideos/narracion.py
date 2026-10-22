@@ -26,7 +26,7 @@ from pathlib import Path
 from . import clonvoz, compose, ffmpeg, importar, pausas, subtitles, voicefx
 from .config import OUTPUT_DIR, Settings
 from .models import Project
-from .pipeline import guardar_narracion, narrar_o_reusar, reusar_narracion
+from .pipeline import guardar_narracion, narrar_clon, narrar_o_reusar, reusar_narracion
 from .script import parse
 
 
@@ -95,15 +95,19 @@ def create_audio(
         # Con voz clonada el reuso importa aún más: generar 47 escenas con el
         # modelo tarda minutos, y oír el audio antes de montar es justo el uso
         # de este módulo.
-        firma = clonvoz.marca(voz_clon, clon_idioma, 0.5, 0.5)
-        reusada = reusar and reusar_narracion(project, settings, firma)
-        if reusada and on_progress:
-            on_progress("Reusando tu voz clonada")
-        elif not reusada:
+        if reusar:
+            # Solo se clonan las escenas nuevas o cambiadas.
+            hechas, _ = narrar_clon(
+                project, settings, voz_clon, idioma=clon_idioma, on_progress=on_progress
+            )
+            reusada = hechas == 0
+        else:
+            firma = clonvoz.marca(voz_clon, clon_idioma, 0.5, 0.5)
             clonvoz.generar(
                 project, voz_clon, settings, idioma=clon_idioma, on_progress=on_progress
             )
             guardar_narracion(project, settings, firma)
+            reusada = False
     else:
         reusada = narrar_o_reusar(
             project,

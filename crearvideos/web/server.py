@@ -625,6 +625,33 @@ def _start_miniatura(datos: dict) -> str:
     return job_id
 
 
+def _aviso_existente(nombre: str, guion: str, escenas) -> str:
+    """Avisa si el proyecto ya existe con OTRO guion: se sobrescribiría.
+
+    Pasó de verdad: el campo "Nombre del proyecto" se quedó con el nombre del
+    video anterior y el nuevo se montó encima, pisando su voz y su MP4.
+    """
+    name = _slug(nombre) if (nombre or "").strip() else _default_name(guion)
+    archivo = OUTPUT_DIR / name / "narracion.json"
+    if not archivo.is_file() or not escenas:
+        return ""
+    from .. import pausas
+
+    try:
+        previas = json.loads(archivo.read_text(encoding="utf-8")).get("escenas") or []
+    except (OSError, json.JSONDecodeError):
+        return ""
+    if not previas:
+        return ""
+    antes = pausas.limpiar(previas[0].get("texto", ""))[:60]
+    ahora = pausas.limpiar(escenas[0].text)[:60]
+    if antes == ahora:
+        return ""
+    return (f"Ya existe un proyecto llamado «{name}» con otro guion (empieza: «{antes}…»). "
+            "Si sigues, se sobrescriben su voz, sus imágenes y su video. Cambia el nombre "
+            "del proyecto si quieres conservarlo.")
+
+
 #: Filtros del diálogo de archivo, por tipo de campo.
 _FILTROS = {
     "audio": "Audio|*.mp3;*.wav;*.m4a;*.aac;*.ogg;*.opus;*.flac;*.mpeg;*.wma|Todos|*.*",
@@ -1530,6 +1557,7 @@ class Handler(BaseHTTPRequestHandler):
                     "palabras": palabras,
                     "duracion_estimada": round(palabras / 2.85 + silencio),
                     "pausas": round(silencio, 1),
+                    "aviso_proyecto": _aviso_existente(datos.get("nombre", ""), guion, scenes),
                 }
             )
             return
@@ -1722,7 +1750,12 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 ajustes = load_settings()
                 ajustes.scene.por_parrafo = datos.get("por_parrafo") is True
-                self._json(montaje.previsualizar(guion, Path(carpeta), ajustes))
+                vista = montaje.previsualizar(guion, Path(carpeta), ajustes)
+                from ..script import parse as _parse
+
+                vista["aviso_proyecto"] = _aviso_existente(
+                    datos.get("nombre", ""), guion, _parse(guion, ajustes.scene)[0])
+                self._json(vista)
             except (MediosError, ValueError) as e:
                 self._json({"error": str(e)}, 400)
             return

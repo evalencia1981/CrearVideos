@@ -1,0 +1,75 @@
+{
+  "tema": "jorge lucas",
+  "titulo": "El director que cambió el cine y casi lo perdió todo | George Lucas",
+  "gancho": "Una galaxia entera nació de una idea pequeña, y su creador estuvo a punto de verla fracasar antes de dominar Hollywood.",
+  "escenas": 58,
+  "palabras": 1340,
+  "duracion_estimada": 473,
+  "referencia": {
+    "titulo": "",
+    "canal": "Dieck Docs",
+    "nicho": "documentales de figuras públicas, crimen y cultura pop",
+    "audiencia": "personas interesadas en historias reales, crimen, celebridades, deportes, cine y casos famosos contados con tensión narrativa",
+    "tono": "dramático, reflexivo y muy narrativo; mezcla admiración, juicio moral y empatía, con lenguaje de documental popular.",
+    "promesa": "Historias reales explicadas como si fueran un thriller: entender cómo una persona, caso o evento cambió el mundo y por qué importa emocionalmente.",
+    "formula_titulo": "The [OBJETO/PRUEBA] that was supposed to [VERBO DRAMÁTICO] ended up [GIRO OPUESTO] | [CASO] | Documentary",
+    "disparadores": [],
+    "gancho": "Abrir con una imagen concreta + promesa de tragedia futura + contraste irónico.",
+    "estructura": [
+      "1) Arranque con una paradoja, una prueba, una frase impactante o una escena futura.",
+      "2) Contexto de origen: infancia, entorno social y construcción del personaje.",
+      "3) Escalada de éxito: ascenso, fama, poder o relevancia cultural.",
+      "4) Punto de quiebre: relación rota, crimen, escándalo o contradicción moral.",
+      "5) Caída y consecuencias: juicio, castigo, exposición pública o relectura histórica."
+    ],
+    "retencion": [],
+    "porque": "Los outliers suelen tener un conflicto más universal y una contradicción más fuerte que los videos normales. El mayor ejemplo es O.J. Simpson: el título promete una ironía muy precisa, \"The EVIDENCE that was supposed to CONVICT HIM ended up SAVING HIM\", y la transcripción arranca con una escena visual memorable y un giro inmediato sobre los guantes [0:00-0:21]. También triunfa cuando el video toca una figura ya masiva y reinterpreta su caída o su legado con un ángulo muy humano, como Jennette McCurdy en \"The woman I had put on a pedestal\" y \"They will start seeing them differently\", donde el gancho se apoya en trauma familiar y revelación personal [0:00-0:22]. En cambio, los videos normales suelen ser más descriptivos o biográficos, como \"The MAN who inspired DRACULA\" o \"What does a film DIRECTOR actually do?\", que informan pero no prometen un vuelco emocional tan fuerte. En shorts, los outliers también concentran un choque emocional claro o una consecuencia inmediata; los que son más abstractos o genéricos se quedan en 0.3×-0.5× la mediana.",
+    "estilo_visual": {
+      "estilo": "documental cinematográfico con imágenes de archivo, retratos dramáticos, composición limpia y sujeto principal muy legible; encuadres medios y primeros planos con sensación de investigación",
+      "paleta": "negros, grises, blanco roto y acentos rojos o amarillos para urgencia; en cultura pop, colores más vivos pero siempre con contraste alto",
+      "evitar": "miniaturas recargadas, demasiado texto, fondos confusos, paletas planas y composiciones sin un foco emocional claro"
+    },
+    "ideas": [
+      {
+        "titulo": "The SCANDAL that made the public love him even more | Documentary",
+        "gancho": "“Fíjate en cómo un solo escándalo puede destruir una reputación... o convertir a alguien en leyenda.”",
+        "angulo": "Documental sobre cómo la percepción pública puede invertirse después de una controversia."
+      },
+      {
+        "titulo": "Why did everyone trust the man who was lying to them? | Documentary",
+        "gancho": "“Durante años parecía imposible sospechar de él. Justo por eso fue tan fácil engañar a todos.”",
+        "angulo": "Fraude o manipulador carismático contado como historia de confianza rota."
+      },
+      {
+        "titulo": "The family secret that changed everything | Documentary",
+        "gancho": "“En una sola conversación descubrió que toda su infancia estaba construida sobre una mentira.”",
+        "angulo": "Revelación familiar con giro emocional fuerte, estilo confesional."
+      },
+      {
+        "titulo": "How did one photo ruin a perfect image? | Documentary",
+        "gancho": "“A veces no hace falta una prueba gigante. Basta una foto para cambiarlo todo.”",
+        "angulo": "Caso mediático donde una imagen desencadena caída pública."
+      },
+      {
+        "titulo": "The hero who became impossible to defend | Documentary",
+        "gancho": "“Cuando alguien ha sido admirado durante años, aceptar la verdad se vuelve insoportable.”",
+        "angulo": "Caída de un ídolo deportivo, cultural o político."
+      },
+      {
+        "titulo": "Why did the world believe him for so long? | Documentary",
+        "gancho": "“No era solo lo que decía. Era cómo lograba que todos quisieran creerle.”",
+        "angulo": "Perfil de un orador, líder o estafador con control narrativo."
+      },
+      {
+        "titulo": "The mistake that cost him everything | Documentary",
+        "gancho": "“No fue el peor error de su vida. Fue el único que ya no pudo borrar.”",
+        "angulo": "Historia de una gran caída por una decisión puntual."
+      },
+      {
+        "titulo": "The evidence that changed the whole case | Documentary",
+        "gancho": "“Primero parecía condenarlo. Después terminó abriendo la puerta a su salvación.”",
+        "angulo": "Caso judicial o policial donde una prueba cambia el rumbo del relato."
+      }
+    ]
+  }
+}

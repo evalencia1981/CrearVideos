@@ -324,6 +324,9 @@ def _guardar_por_escena(project: Project) -> None:
                 "start": scene.start,
                 "duration": scene.duration,
                 "words": [[w.text, w.start, w.duration] for w in scene.words],
+                # Con voz clonada: qué muestra la hizo. Permite reconocerla
+                # aunque cambie la voz de edge del desplegable, que no suena.
+                **({"clon": scene._clon} if getattr(scene, "_clon", "") else {}),
             }
         )
     try:
@@ -412,6 +415,111 @@ def restaurar_narracion(project: Project, esperadas: dict[int, str]) -> bool:
         scene._firma = g.get("firma", "")  # type: ignore[attr-defined]
         cursor += scene.duration
     return True
+
+
+def narrar_clon(
+    project: Project,
+    settings: Settings,
+    muestra: Path,
+    *,
+    idioma: str = "es",
+    on_progress=None,
+) -> tuple[int, str]:
+    """Narra con voz clonada clonando SOLO las escenas nuevas o cambiadas.
+
+    Clonar va a ~10 s de proceso por segundo de audio, así que rehacer un
+    video entero porque se corrigió una frase eran más de una hora. Aquí lo
+    ya clonado se reconoce por su TEXTO y su huella (no por su posición: si
+    se inserta una escena, las de después cambian de número pero siguen
+    sirviendo) y solo se clona lo que falta.
+
+    La huella es la misma que ya guardaban la producción y el montaje, así
+    que lo clonado antes de este cambio también se reutiliza.
+
+    Devuelve (escenas clonadas ahora, modelo usado o "reusada").
+    """
+    import shutil
+
+    from . import clonvoz
+
+    marca = clonvoz.marca(muestra, idioma, 0.5, 0.5)
+    esperadas = {
+        s.index: firma_escena(s.text, settings.voice, marca, settings.scene_gap)
+        for s in project.scenes
+    }
+    previas: dict[tuple[str, str], dict] = {}
+    try:
+        datos = json.loads((project.root / NARRACION_CACHE).read_text(encoding="utf-8"))
+        for g in datos.get("escenas") or []:
+            audio = project.audio_dir / (g.get("audio") or "")
+            if not (g.get("audio") and audio.is_file()):
+                continue
+            # Dos formas de reconocer una escena ya clonada: por la muestra
+            # que la hizo (lo nuevo) o por la huella de antes de este cambio.
+            if g.get("clon"):
+                previas[(g.get("texto", ""), "clon:" + g["clon"])] = g
+            if g.get("firma"):
+                previas[(g.get("texto", ""), g["firma"])] = g
+    except (OSError, json.JSONDecodeError):
+        pass
+
+    project.audio_dir.mkdir(parents=True, exist_ok=True)
+    reuso_dir = project.audio_dir / "_reuso"
+    shutil.rmtree(reuso_dir, ignore_errors=True)
+    reuso_dir.mkdir()
+    reusadas: dict[int, dict] = {}
+    pendientes: list[Scene] = []
+    try:
+        for scene in project.scenes:
+            g = (previas.get((scene.text, "clon:" + marca))
+                 or previas.get((scene.text, esperadas[scene.index])))
+            if g is None:
+                pendientes.append(scene)
+                continue
+            # Se aparta antes de clonar: el audio nuevo de otra escena puede
+            # caer en el mismo nombre de archivo.
+            copia = reuso_dir / f"{scene.index:03d}.wav"
+            shutil.copy2(project.audio_dir / g["audio"], copia)
+            reusadas[scene.index] = {**g, "_copia": copia}
+
+        modelo = "reusada"
+        if pendientes:
+            if on_progress:
+                on_progress(
+                    f"Clonando {len(pendientes)} de {len(project.scenes)} escenas "
+                    f"(las demás ya estaban clonadas)"
+                )
+            temporal = Project(name=project.name, root=project.root, scenes=pendientes)
+            modelo = clonvoz.generar(temporal, muestra, settings, idioma=idioma,
+                                     on_progress=on_progress)
+            # clonvoz deja las palabras sobre la línea de tiempo del proyecto
+            # temporal; se devuelven al inicio de su escena.
+            for scene in pendientes:
+                scene.words = [Word(w.text, w.start - scene.start, w.duration) for w in scene.words]
+                scene.start = 0.0
+
+        for scene in project.scenes:
+            g = reusadas.get(scene.index)
+            if g is None:
+                continue
+            final = project.audio_dir / f"escena_{scene.index:03d}.wav"
+            shutil.copy2(g["_copia"], final)
+            scene.audio_path = final
+            scene.duration = float(g["duration"])
+            scene.words = [Word(t, float(s), float(d)) for t, s, d in g.get("words", [])]
+    finally:
+        shutil.rmtree(reuso_dir, ignore_errors=True)
+
+    cursor = 0.0
+    for scene in project.scenes:
+        scene.start = cursor
+        scene.words = [w.shifted(cursor) for w in scene.words]
+        cursor += scene.duration
+        scene._clon = marca  # type: ignore[attr-defined]
+    guardar_firmas(project, esperadas)
+    if on_progress and not pendientes:
+        on_progress("Reusando tu voz clonada")
+    return len(pendientes), modelo
 
 
 def asignaciones_de(project: Project, settings: Settings) -> dict:
@@ -589,6 +697,11 @@ def illustrate(project: Project, provider: ImageProvider, on_progress=None) -> f
         generadas += 1
         scene.image_path = path
         huellas[clave] = fp
+        # Se anota CADA imagen al generarla, no solo al final: si la escena 30
+        # falla (se acabó el pollen), las 29 de antes ya pagadas no se vuelven
+        # a pedir al relanzar.
+        previas[clave] = fp
+        marca.write_text(json.dumps(previas), encoding="utf-8")
 
     marca.write_text(json.dumps(huellas), encoding="utf-8")
     # Solo se cobra lo que de verdad se generó en esta corrida.
@@ -687,29 +800,58 @@ def create(
             formato=formato,
         )
 
+    # Las imágenes no dependen de la voz (salen de los prompts), así que se
+    # generan A LA VEZ que la narración. Con voz clonada (~10 s por segundo de
+    # audio) eso ahorra todo el tiempo de las imágenes: antes se esperaba a
+    # que terminara la voz para empezar a pedirlas.
+    import threading
+
+    avance = {"voz": "", "img": ""}
+    candado = threading.Lock()
+
+    def informar(clave: str, msg: str) -> None:
+        with candado:
+            avance[clave] = msg
+            texto = " · ".join(f"{n}: {m}" for n, m in
+                               (("Voz", avance["voz"]), ("Imágenes", avance["img"])) if m)
+        if on_progress:
+            on_progress(texto)
+
+    resultado: dict = {}
+
+    def ilustrar() -> None:
+        try:
+            resultado["costo"] = illustrate(project, images, lambda m: informar("img", m))
+            informar("img", "listas")
+        except BaseException as e:  # noqa: BLE001 - se relanza al terminar la voz
+            resultado["error"] = e
+            informar("img", f"fallaron ({e}). La voz sigue y queda guardada para relanzar")
+
+    hilo = threading.Thread(target=ilustrar, daemon=True)
+    hilo.start()
+    progreso_voz = lambda m: informar("voz", m)  # noqa: E731
+
     # La voz decide la duración de cada escena, venga de donde venga: tu
-    # grabación (no se sintetiza nada), tu voz clonada (se reusa si ya se
-    # clonó lo mismo, porque tarda minutos) o la voz generada de siempre.
-    if voz_propia is not None:
-        from . import vozpropia
+    # grabación (no se sintetiza nada), tu voz clonada (solo se clonan las
+    # escenas nuevas o cambiadas) o la voz generada de siempre.
+    try:
+        if voz_propia is not None:
+            from . import vozpropia
 
-        vozpropia.aplicar(project, voz_propia, settings, on_progress)
-    elif voz_clon is not None:
-        from . import clonvoz
-
-        firma = clonvoz.marca(voz_clon, clon_idioma, 0.5, 0.5)
-        if reusar_narracion(project, settings, firma):
-            if on_progress:
-                on_progress("Reusando tu voz clonada")
+            vozpropia.aplicar(project, voz_propia, settings, progreso_voz)
+        elif voz_clon is not None:
+            narrar_clon(project, settings, voz_clon, idioma=clon_idioma, on_progress=progreso_voz)
         else:
-            clonvoz.generar(
-                project, voz_clon, settings, idioma=clon_idioma, on_progress=on_progress
-            )
-            guardar_narracion(project, settings, firma)
-    else:
-        voice_filter = voicefx.resolve(settings.voice_fx, style_key)
-        narrate(project, tts, settings, on_progress, voice_filter=voice_filter)
-    cost = illustrate(project, images, on_progress)
+            voice_filter = voicefx.resolve(settings.voice_fx, style_key)
+            narrate(project, tts, settings, progreso_voz, voice_filter=voice_filter)
+        informar("voz", "lista")
+    finally:
+        # Aunque la voz falle, se espera a las imágenes: lo ya generado queda
+        # guardado y no se vuelve a pagar al relanzar.
+        hilo.join()
+    if "error" in resultado:
+        raise resultado["error"]
+    cost = resultado.get("costo", 0.0)
 
     if on_progress:
         on_progress("Generando subtítulos")

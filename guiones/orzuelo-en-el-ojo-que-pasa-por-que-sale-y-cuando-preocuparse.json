@@ -1,0 +1,74 @@
+{
+  "tema": "hablemos de los ojo que pasa si te da un orzuelo, curiosidades",
+  "titulo": "Orzuelo en el ojo: qué pasa, por qué sale y cuándo preocuparse",
+  "gancho": "Un bultito en el párpado puede parecer pequeño, pero a veces cuenta una historia más grande de lo que imaginas.",
+  "escenas": 18,
+  "palabras": 429,
+  "duracion_estimada": 151,
+  "referencia": {
+    "titulo": "",
+    "canal": "Dosis de Cultura",
+    "nicho": "trivia y quizzes de cultura general",
+    "audiencia": "personas que quieren entretenerse mientras ponen a prueba su cultura general, vocabulario o memoria; también gente que disfruta retos rápidos tipo adivinanza",
+    "tono": "ligero, retador, juguetón y muy directo; mezcla curiosidad con sensación de prueba rápida",
+    "promesa": "poner a prueba tu conocimiento con retos rápidos, repetibles y adictivos de cultura general, idiomas, historia, geografía y adivinanzas visuales",
+    "formula_titulo": "[Número] [Tema] Questions [con/sin] [Opciones / Multiple Choice] - How Much Do You Know About [Tema]?",
+    "disparadores": [],
+    "gancho": "Arranque directo con el reto y sin introducción larga.",
+    "estructura": [
+      "Abre con el reto ya planteado en la primera frase.",
+      "Muestra una secuencia rápida de elementos/preguntas con pausas cortas y música.",
+      "Intercala una frase ocasional de dificultad o ánimo para sostener la atención.",
+      "Cierra con una invitación a comentar o seguir para más partes."
+    ],
+    "retencion": [],
+    "porque": "Los outliers concentran una mecánica de adivinanza ultra simple, visual y altamente serializable, mientras los videos normales suelen ser quizzes genéricos de cultura general o ciencias con menos gancho emocional. En los mayores éxitos aparece una restricción concreta y fácil de entender en una sola vista: \"sin vocales\" en \"Adivina el País sin Vocales\" [0:00], frente a formatos más amplios como \"General Knowledge Challenge\" o \"50 Science Questions\" que se sienten más genéricos. Además, los outliers usan una respuesta clara y culturalmente reconocible (países), lo que aumenta el deseo de jugar; en cambio, temas como \"Human Body\" o \"Science\" aparecen en videos de menor rendimiento relativo. La evidencia también muestra serialización fuerte: el mismo concepto aparece como \"Parte 2\" y \"Parte 3\", y sigue rindiendo muy por encima de la mediana.",
+    "estilo_visual": {
+      "estilo": "gráfico limpio tipo app/quiz, con objetos centrados, composición vertical y elementos grandes y simples",
+      "paleta": "azules, morados, negros y blancos con acentos brillantes verdes o amarillos para enfatizar la respuesta",
+      "evitar": "fondos recargados, demasiados elementos, tipografías pequeñas, y miniaturas sin una sola mecánica visual dominante"
+    },
+    "ideas": [
+      {
+        "titulo": "Adivina la Ciudad sin Vocales 🌆🤔 | Parte 1",
+        "gancho": "¿Puedes descubrir la ciudad antes de que aparezca la respuesta?",
+        "angulo": "trasladar la mecánica de \"sin vocales\" a capitales y ciudades famosas"
+      },
+      {
+        "titulo": "Adivina la Marca por su Logo Borrado 🧐🚗 | Reto Visual",
+        "gancho": "Mira este logo incompleto y dime qué marca es en 3 segundos.",
+        "angulo": "jugar con memoria visual y marcas globales"
+      },
+      {
+        "titulo": "Adivina la Bandera en Blanco y Negro 🚩⚫⚪ | Parte 1",
+        "gancho": "Solo por los colores y formas, ¿qué país crees que es?",
+        "angulo": "banderas desaturadas o simplificadas para elevar la dificultad"
+      },
+      {
+        "titulo": "Adivina la Película por Emojis 🎬😎 | 50 Retos",
+        "gancho": "Te daré 3 emojis y tú tienes que nombrar la película.",
+        "angulo": "aplicar la lógica de adivinanza rápida a cine y cultura pop"
+      },
+      {
+        "titulo": "Adivina el Animal sin Letras 🐼🤔 | Parte 1",
+        "gancho": "Si reconoces esta palabra incompleta, este punto es tuyo.",
+        "angulo": "recrear el éxito de la serie de animales sin vocales"
+      },
+      {
+        "titulo": "¿Cuánto Sabes de Historia? 🏛️🧠 | 100 Preguntas",
+        "gancho": "Empezamos fácil, pero cada pregunta te va a exigir más.",
+        "angulo": "usar el formato de quiz largo con progresión de dificultad"
+      },
+      {
+        "titulo": "Adivina el Deporte por la Sombra ⚽🏀 | Reto Express",
+        "gancho": "Solo tienes un segundo: identifica el deporte antes de que desaparezca.",
+        "angulo": "retos visuales ultra rápidos con siluetas"
+      },
+      {
+        "titulo": "Adivina el Personaje por la Mirada 👀 | Parte 1",
+        "gancho": "Si sabes quién es solo viendo los ojos, estás dentro del juego.",
+        "angulo": "convertir una pista mínima en un reto de cultura pop"
+      }
+    ]
+  }
+}

@@ -38,7 +38,7 @@ from . import (
 )
 from .config import OUTPUT_DIR, Settings, formato as resolver_formato
 from .models import Project
-from .pipeline import guardar_narracion, narrar_o_reusar, reusar_narracion
+from .pipeline import guardar_narracion, narrar_clon, narrar_o_reusar, reusar_narracion
 from .script import parse
 
 
@@ -157,12 +157,17 @@ def montar(
     elif voz_clon is not None:
         # Clonar tarda minutos, así que se reusa igual que la voz generada: la
         # marca incluye la muestra y su fecha, y cambiar cualquiera la invalida.
-        firma = clonvoz.marca(voz_clon, clon_idioma, 0.5, 0.5)
-        if reusar_voz and reusar_narracion(project, settings, firma):
-            voz_reusada, origen_voz = True, "clonada (reusada)"
-            if on_progress:
-                on_progress("Reusando tu voz clonada")
+        if reusar_voz:
+            # Solo se clonan las escenas nuevas o cambiadas: corregir una frase
+            # ya no obliga a reclonar el video entero.
+            hechas, modelo = narrar_clon(
+                project, settings, voz_clon, idioma=clon_idioma, on_progress=on_progress
+            )
+            voz_reusada = hechas == 0
+            origen_voz = ("clonada (reusada)" if voz_reusada
+                          else f"clonada · {modelo} · {hechas} escena(s) nuevas")
         else:
+            firma = clonvoz.marca(voz_clon, clon_idioma, 0.5, 0.5)
             modelo = clonvoz.generar(
                 project, voz_clon, settings, idioma=clon_idioma, on_progress=on_progress
             )
